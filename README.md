@@ -51,36 +51,38 @@ A comprehensive ERP solution designed specifically for brewery operations with m
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ and npm/yarn
-- PostgreSQL 13+ database
+- Node.js 16+ and npm/yarn
+- Firebase account (free tier available)
 - Modern web browser
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/brewery-erp.git
-   cd brewery-erp
+   git clone https://github.com/KachiAlex/harachi.git
+   cd harachi
    ```
 
 2. **Install dependencies**
    ```bash
-   npm install
+   npm install --legacy-peer-deps
    ```
 
-3. **Set up the database**
-   ```bash
-   # Create PostgreSQL database
-   createdb brewery_erp
-   
-   # Run the schema setup
-   psql brewery_erp < database/brewery-erp-schema.sql
-   ```
+3. **Set up Firebase**
+   - Follow the complete setup guide in [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)
+   - Create your Firebase project with Authentication, Firestore, and Storage
+   - Deploy the provided security rules
 
 4. **Configure environment**
    ```bash
-   cp .env.example .env
-   # Edit .env with your database and API settings
+   # Create .env file with your Firebase configuration
+   REACT_APP_FIREBASE_API_KEY=your_api_key_here
+   REACT_APP_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
+   REACT_APP_FIREBASE_PROJECT_ID=your_project_id
+   REACT_APP_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
+   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+   REACT_APP_FIREBASE_APP_ID=your_app_id
+   REACT_APP_FIREBASE_MEASUREMENT_ID=your_measurement_id
    ```
 
 5. **Start the development server**
@@ -90,7 +92,11 @@ A comprehensive ERP solution designed specifically for brewery operations with m
 
 6. **Access the application**
    - Open http://localhost:3000 in your browser
-   - Default login: admin@brewery.com / admin123
+   - Demo logins (after Firebase setup):
+     - **Admin**: admin@bogofood.com / admin123
+     - **Manager**: manager@bogofood.com / manager123
+     - **Operator**: operator@bogofood.com / operator123
+     - **Auditor**: auditor@bogofood.com / auditor123
 
 ## 🏗️ Architecture
 
@@ -105,16 +111,18 @@ A comprehensive ERP solution designed specifically for brewery operations with m
 - **Lucide React** - Modern icon library
 
 ### Backend Integration
-- **RESTful APIs** - Standard HTTP APIs with OpenAPI documentation
-- **JWT Authentication** - Secure token-based authentication
-- **Multi-tenant Data** - Tenant isolation at database level
-- **Real-time Updates** - WebSocket connections for live data
+- **Firebase Authentication** - Secure user authentication and authorization
+- **Firestore Database** - NoSQL cloud database with real-time sync
+- **Firebase Storage** - Secure file storage with access control
+- **Security Rules** - Fine-grained data and file access control
+- **Multi-tenant Data** - Company-scoped data isolation
 
 ### Database Design
-- **PostgreSQL** - Primary database with JSONB support
+- **Firestore Collections** - Document-based data structure
 - **Multi-tenant Schema** - Company-scoped data isolation
-- **Audit Logging** - Complete change tracking
-- **Performance Indexes** - Optimized for brewery operations
+- **Real-time Updates** - Live data synchronization
+- **Security Rules** - Role-based access control
+- **Optimized Indexes** - Performance tuned for brewery operations
 
 ## 📁 Project Structure
 
