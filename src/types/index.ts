@@ -324,24 +324,28 @@ export interface BatchAttributes {
 }
 
 export interface QCTest {
-  id: number;
-  lotSerialId: number;
-  testType: string;
-  testDate: string;
-  status: 'PENDING' | 'PASSED' | 'FAILED' | 'CANCELLED';
-  testedBy: number;
-  notes?: string;
-  createdAt: string;
+  id: string;
+  lotSerialId: string;
+  testType: 'INCOMING_INSPECTION' | 'IN_PROCESS' | 'FINAL_PRODUCT' | 'STABILITY' | 'MICROBIOLOGICAL' | 'SENSORY' | 'CHEMICAL' | 'PHYSICAL';
+  testDate: Date;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  testedBy: string;
+  notes: string;
+  createdAt: Date;
+  companyId: string;
+  batchNo: string;
+  itemId: string;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 }
 
 export interface QCResult {
-  id: number;
-  qcTestId: number;
+  id: string;
+  qcTestId: string;
   parameter: string;
-  expectedValue?: string;
+  expectedValue: string;
   actualValue: string;
   result: 'PASS' | 'FAIL' | 'WARNING';
-  notes?: string;
+  notes: string;
 }
 
 export interface InterCountryTransfer {
