@@ -1,0 +1,2230 @@
+openapi: 3.0.3
+info:
+  title: Brewery ERP API
+  description: |
+    Multi-tenant brewery ERP API supporting global operations across countries, 
+    branches, and warehouses. Includes inventory management, production batching, 
+    procurement, and quality control with full traceability.
+  version: 1.0.0
+  contact:
+    name: Brewery ERP Team
+    email: api@brewery-erp.com
+
+servers:
+  - url: https://api.brewery-erp.com/v1
+    description: Production server
+  - url: https://staging-api.brewery-erp.com/v1
+    description: Staging server
+
+security:
+  - bearerAuth: []
+
+paths:
+  # Tenant & Context Management
+  /tenants:
+    get:
+      summary: List accessible tenants for current user
+      tags: [Tenant Management]
+      responses:
+        '200':
+          description: List of tenants user has access to
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tenant'
+
+  /tenants/{tenantId}/countries:
+    get:
+      summary: List countries for a tenant
+      tags: [Tenant Management]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: List of countries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Country'
+
+  /tenants/{tenantId}/countries/{countryId}/branches:
+    get:
+      summary: List branches for a country
+      tags: [Tenant Management]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CountryId'
+      responses:
+        '200':
+          description: List of branches
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Branch'
+
+  /tenants/{tenantId}/countries/{countryId}/branches/{branchId}/warehouses:
+    get:
+      summary: List warehouses for a branch
+      tags: [Tenant Management]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/CountryId'
+        - $ref: '#/components/parameters/BranchId'
+      responses:
+        '200':
+          description: List of warehouses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Warehouse'
+
+  # Context Switching
+  /context:
+    get:
+      summary: Get current user context
+      tags: [Tenant Management]
+      responses:
+        '200':
+          description: Current context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContext'
+    
+    put:
+      summary: Set user context (tenant, country, branch)
+      tags: [Tenant Management]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetContextRequest'
+      responses:
+        '200':
+          description: Context updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserContext'
+
+  # Item Management (Scoped to current tenant context)
+  /item-classes:
+    get:
+      summary: Get item class hierarchy
+      tags: [Inventory Management]
+      parameters:
+        - name: parent_id
+          in: query
+          schema:
+            type: integer
+          description: Filter by parent class ID
+      responses:
+        '200':
+          description: Item class tree
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ItemClass'
+
+    post:
+      summary: Create new item class
+      tags: [Inventory Management]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItemClassRequest'
+      responses:
+        '201':
+          description: Item class created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemClass'
+
+  /items:
+    get:
+      summary: Search items
+      tags: [Inventory Management]
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by SKU or description
+        - name: item_class_id
+          in: query
+          schema:
+            type: integer
+        - name: active_only
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: List of items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Item'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+    post:
+      summary: Create new item
+      tags: [Inventory Management]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateItemRequest'
+      responses:
+        '201':
+          description: Item created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+
+  /items/{itemId}:
+    get:
+      summary: Get item details
+      tags: [Inventory Management]
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '200':
+          description: Item details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemDetail'
+
+    put:
+      summary: Update item
+      tags: [Inventory Management]
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateItemRequest'
+      responses:
+        '200':
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+
+  /items/{itemId}/uom-conversions:
+    get:
+      summary: Get UOM conversions for item
+      tags: [Inventory Management]
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      responses:
+        '200':
+          description: UOM conversion grid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UOMConversion'
+
+    post:
+      summary: Add UOM conversion
+      tags: [Inventory Management]
+      parameters:
+        - $ref: '#/components/parameters/ItemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUOMConversionRequest'
+      responses:
+        '201':
+          description: UOM conversion created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UOMConversion'
+
+  # Stock & Inventory (Scoped to current tenant/country/branch context)
+  /stock-balances:
+    get:
+      summary: Get stock balances (filtered by current context)
+      tags: [Inventory Management]
+      parameters:
+        - name: item_id
+          in: query
+          schema:
+            type: integer
+        - name: warehouse_id
+          in: query
+          schema:
+            type: integer
+        - name: lot_serial_id
+          in: query
+          schema:
+            type: integer
+        - name: non_zero_only
+          in: query
+          schema:
+            type: boolean
+            default: true
+        - name: country_id
+          in: query
+          schema:
+            type: integer
+          description: Override context to view specific country (if user has access)
+        - name: branch_id
+          in: query
+          schema:
+            type: integer
+          description: Override context to view specific branch (if user has access)
+      responses:
+        '200':
+          description: Stock balances within user's context
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StockBalance'
+
+  /inventory-transactions:
+    get:
+      summary: Get inventory transaction history
+      tags: [Inventory Management]
+      parameters:
+        - name: item_id
+          in: query
+          schema:
+            type: integer
+        - name: warehouse_id
+          in: query
+          schema:
+            type: integer
+        - name: trx_type
+          in: query
+          schema:
+            type: string
+            enum: [RECEIPT, ISSUE, ADJUSTMENT, TRANSFER, PRODUCTION_CONSUME, PRODUCTION_YIELD]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Inventory transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InventoryTransaction'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+    post:
+      summary: Create inventory adjustment
+      tags: [Inventory Management]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInventoryTransactionRequest'
+      responses:
+        '201':
+          description: Transaction created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryTransaction'
+
+  # Procurement
+  /purchase-orders:
+    get:
+      summary: List purchase orders
+      tags: [Procurement]
+      parameters:
+        - name: supplier_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [DRAFT, SUBMITTED, APPROVED, CLOSED, CANCELLED]
+        - name: order_date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: order_date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Purchase orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PurchaseOrder'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+    post:
+      summary: Create purchase order
+      tags: [Procurement]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePurchaseOrderRequest'
+      responses:
+        '201':
+          description: Purchase order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrder'
+
+  /purchase-orders/{poId}:
+    get:
+      summary: Get purchase order details
+      tags: [Procurement]
+      parameters:
+        - $ref: '#/components/parameters/POId'
+      responses:
+        '200':
+          description: Purchase order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseOrderDetail'
+
+  /purchase-orders/{poId}/goods-receipts:
+    post:
+      summary: Create goods receipt
+      tags: [Procurement]
+      parameters:
+        - $ref: '#/components/parameters/POId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateGoodsReceiptRequest'
+      responses:
+        '201':
+          description: Goods receipt created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GoodsReceipt'
+
+  # Production & Manufacturing
+  /recipes:
+    get:
+      summary: List recipes
+      tags: [Production]
+      parameters:
+        - name: item_id
+          in: query
+          schema:
+            type: integer
+          description: Filter by finished good item
+        - name: active_only
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: List of recipes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Recipe'
+
+    post:
+      summary: Create recipe
+      tags: [Production]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRecipeRequest'
+      responses:
+        '201':
+          description: Recipe created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+
+  /recipes/{recipeId}:
+    get:
+      summary: Get recipe details
+      tags: [Production]
+      parameters:
+        - $ref: '#/components/parameters/RecipeId'
+      responses:
+        '200':
+          description: Recipe details with ingredients
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeDetail'
+
+  /production-orders:
+    get:
+      summary: List production orders
+      tags: [Production]
+      parameters:
+        - name: recipe_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PLANNED, RELEASED, IN_PROGRESS, COMPLETED, CLOSED, CANCELLED]
+        - name: batch_no
+          in: query
+          schema:
+            type: string
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: Production orders
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductionOrder'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+    post:
+      summary: Create production order
+      tags: [Production]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductionOrderRequest'
+      responses:
+        '201':
+          description: Production order created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionOrder'
+
+  /production-orders/{productionOrderId}:
+    get:
+      summary: Get production order details
+      tags: [Production]
+      parameters:
+        - $ref: '#/components/parameters/ProductionOrderId'
+      responses:
+        '200':
+          description: Production order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductionOrderDetail'
+
+  /production-orders/{productionOrderId}/material-consumption:
+    post:
+      summary: Record material consumption
+      tags: [Production]
+      parameters:
+        - $ref: '#/components/parameters/ProductionOrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MaterialConsumptionRequest'
+      responses:
+        '201':
+          description: Material consumption recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InventoryTransaction'
+
+  /production-orders/{productionOrderId}/batch-completion:
+    post:
+      summary: Complete batch and record yield
+      tags: [Production]
+      parameters:
+        - $ref: '#/components/parameters/ProductionOrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchCompletionRequest'
+      responses:
+        '201':
+          description: Batch completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  lot_serial:
+                    $ref: '#/components/schemas/LotSerial'
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InventoryTransaction'
+
+  # Quality Control
+  /qc-tests:
+    get:
+      summary: List QC tests
+      tags: [Quality Control]
+      parameters:
+        - name: lot_serial_id
+          in: query
+          schema:
+            type: integer
+        - name: test_type
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, PASSED, FAILED, CANCELLED]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: QC tests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/QCTest'
+
+    post:
+      summary: Create QC test
+      tags: [Quality Control]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQCTestRequest'
+      responses:
+        '201':
+          description: QC test created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QCTest'
+
+  /qc-tests/{qcTestId}/results:
+    post:
+      summary: Record QC test results
+      tags: [Quality Control]
+      parameters:
+        - $ref: '#/components/parameters/QCTestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QCResultRequest'
+      responses:
+        '201':
+          description: QC results recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QCResult'
+
+  # Traceability (Cross-border capable)
+  /traceability/lot/{lotSerialId}:
+    get:
+      summary: Get lot traceability (upstream and downstream, cross-country)
+      tags: [Traceability]
+      parameters:
+        - $ref: '#/components/parameters/LotSerialId'
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [upstream, downstream, both]
+            default: both
+        - name: cross_border
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Include traceability across countries within tenant
+      responses:
+        '200':
+          description: Traceability information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraceabilityReport'
+
+  # Multi-Country Operations
+  /transfers/inter-country:
+    post:
+      summary: Create inter-country transfer
+      tags: [Multi-Country Operations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InterCountryTransferRequest'
+      responses:
+        '201':
+          description: Transfer created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterCountryTransfer'
+
+  /transfers/inter-country/{transferId}/receive:
+    post:
+      summary: Receive inter-country transfer
+      tags: [Multi-Country Operations]
+      parameters:
+        - name: transferId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReceiveTransferRequest'
+      responses:
+        '200':
+          description: Transfer received
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterCountryTransfer'
+
+  # Global Reporting (Tenant-wide)
+  /reports/global-inventory:
+    get:
+      summary: Global inventory report across all countries
+      tags: [Global Reporting]
+      parameters:
+        - name: item_id
+          in: query
+          schema:
+            type: integer
+        - name: country_ids
+          in: query
+          schema:
+            type: array
+            items:
+              type: integer
+          description: Filter by specific countries
+        - name: as_of_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Global inventory positions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GlobalInventoryReport'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    TenantId:
+      name: tenantId
+      in: path
+      required: true
+      schema:
+        type: integer
+    CountryId:
+      name: countryId
+      in: path
+      required: true
+      schema:
+        type: integer
+    BranchId:
+      name: branchId
+      in: path
+      required: true
+      schema:
+        type: integer
+    ItemId:
+      name: itemId
+      in: path
+      required: true
+      schema:
+        type: integer
+    POId:
+      name: poId
+      in: path
+      required: true
+      schema:
+        type: integer
+    RecipeId:
+      name: recipeId
+      in: path
+      required: true
+      schema:
+        type: integer
+    ProductionOrderId:
+      name: productionOrderId
+      in: path
+      required: true
+      schema:
+        type: integer
+    QCTestId:
+      name: qcTestId
+      in: path
+      required: true
+      schema:
+        type: integer
+    LotSerialId:
+      name: lotSerialId
+      in: path
+      required: true
+      schema:
+        type: integer
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  schemas:
+    # Multi-Tenant Core Entities
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        slug:
+          type: string
+          description: URL-safe tenant identifier
+        subscription_tier:
+          type: string
+          enum: [BASIC, PREMIUM, ENTERPRISE]
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Country:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        name:
+          type: string
+        country_code:
+          type: string
+          description: ISO 3166-1 alpha-2 country code
+        currency_code:
+          type: string
+          description: ISO 4217 currency code
+        tax_system:
+          type: string
+          enum: [VAT, GST, SALES_TAX, NONE]
+        timezone:
+          type: string
+          description: IANA timezone identifier
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Branch:
+      type: object
+      properties:
+        id:
+          type: integer
+        country_id:
+          type: integer
+        name:
+          type: string
+        branch_code:
+          type: string
+        branch_type:
+          type: string
+          enum: [BREWERY, PACKAGING, TAPROOM, DISTRIBUTION, WAREHOUSE]
+        address:
+          $ref: '#/components/schemas/Address'
+        contact_info:
+          $ref: '#/components/schemas/ContactInfo'
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Warehouse:
+      type: object
+      properties:
+        id:
+          type: integer
+        branch_id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        warehouse_type:
+          type: string
+          enum: [RAW_MATERIALS, WORK_IN_PROCESS, FINISHED_GOODS, PACKAGING, GENERAL]
+        temperature_controlled:
+          type: boolean
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Address:
+      type: object
+      properties:
+        street_address:
+          type: string
+        city:
+          type: string
+        state_province:
+          type: string
+        postal_code:
+          type: string
+        country_code:
+          type: string
+
+    ContactInfo:
+      type: object
+      properties:
+        phone:
+          type: string
+        email:
+          type: string
+        website:
+          type: string
+          nullable: true
+
+    UserContext:
+      type: object
+      properties:
+        tenant_id:
+          type: integer
+        tenant_name:
+          type: string
+        country_id:
+          type: integer
+          nullable: true
+        country_name:
+          type: string
+          nullable: true
+        country_code:
+          type: string
+          nullable: true
+        currency_code:
+          type: string
+          nullable: true
+        branch_id:
+          type: integer
+          nullable: true
+        branch_name:
+          type: string
+          nullable: true
+        default_warehouse_id:
+          type: integer
+          nullable: true
+        permissions:
+          type: array
+          items:
+            type: string
+        business_date:
+          type: string
+          format: date
+          description: Current business date for the context
+
+    SetContextRequest:
+      type: object
+      required: [tenant_id]
+      properties:
+        tenant_id:
+          type: integer
+        country_id:
+          type: integer
+          nullable: true
+        branch_id:
+          type: integer
+          nullable: true
+        business_date:
+          type: string
+          format: date
+          nullable: true
+
+    ItemClass:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+          description: Scoped to tenant for multi-tenancy
+        parent_id:
+          type: integer
+          nullable: true
+        code:
+          type: string
+        description:
+          type: string
+        posting_class:
+          type: string
+        default_warehouse_id:
+          type: integer
+          nullable: true
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/ItemClass'
+
+    Item:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+          description: Scoped to tenant for multi-tenancy
+        item_class_id:
+          type: integer
+        sku:
+          type: string
+          description: SKU must be unique within tenant
+        description:
+          type: string
+        valuation_method:
+          type: string
+          enum: [STANDARD, AVERAGE, FIFO, LIFO]
+        planning_method:
+          type: string
+          enum: [MRP, REORDER_POINT, NONE]
+        posting_class:
+          type: string
+        tax_category:
+          type: string
+        default_warehouse_id:
+          type: integer
+        base_uom:
+          type: string
+        sales_uom:
+          type: string
+        purchase_uom:
+          type: string
+        active:
+          type: boolean
+        stock_item:
+          type: boolean
+        global_item:
+          type: boolean
+          description: If true, item is available across all countries in tenant
+        country_restrictions:
+          type: array
+          items:
+            type: integer
+          description: List of country IDs where item is available (if not global)
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ItemDetail:
+      allOf:
+        - $ref: '#/components/schemas/Item'
+        - type: object
+          properties:
+            item_class:
+              $ref: '#/components/schemas/ItemClass'
+            uom_conversions:
+              type: array
+              items:
+                $ref: '#/components/schemas/UOMConversion'
+            current_stock:
+              type: number
+              format: decimal
+
+    UOMConversion:
+      type: object
+      properties:
+        id:
+          type: integer
+        item_id:
+          type: integer
+        from_uom:
+          type: string
+        to_uom:
+          type: string
+        factor:
+          type: number
+          format: decimal
+        operation:
+          type: string
+          enum: [MULTIPLY, DIVIDE]
+
+    LotSerial:
+      type: object
+      properties:
+        id:
+          type: integer
+        item_id:
+          type: integer
+        lot_no:
+          type: string
+        manufacture_date:
+          type: string
+          format: date
+        expiry_date:
+          type: string
+          format: date
+          nullable: true
+        supplier_lot:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    StockBalance:
+      type: object
+      properties:
+        id:
+          type: integer
+        item_id:
+          type: integer
+        warehouse_id:
+          type: integer
+        lot_serial_id:
+          type: integer
+          nullable: true
+        qty_on_hand:
+          type: number
+          format: decimal
+        qty_allocated:
+          type: number
+          format: decimal
+        qty_available:
+          type: number
+          format: decimal
+        item:
+          $ref: '#/components/schemas/Item'
+        warehouse:
+          $ref: '#/components/schemas/Warehouse'
+        lot_serial:
+          $ref: '#/components/schemas/LotSerial'
+
+    InventoryTransaction:
+      type: object
+      properties:
+        id:
+          type: integer
+        item_id:
+          type: integer
+        warehouse_id:
+          type: integer
+        lot_serial_id:
+          type: integer
+          nullable: true
+        trx_type:
+          type: string
+          enum: [RECEIPT, ISSUE, ADJUSTMENT, TRANSFER, PRODUCTION_CONSUME, PRODUCTION_YIELD]
+        qty:
+          type: number
+          format: decimal
+        unit_cost:
+          type: number
+          format: decimal
+          nullable: true
+        reference_type:
+          type: string
+          nullable: true
+        reference_id:
+          type: integer
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        transaction_date:
+          type: string
+          format: date-time
+        created_by:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    # Procurement
+    PurchaseOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+        supplier_id:
+          type: integer
+        po_number:
+          type: string
+        order_date:
+          type: string
+          format: date
+        expected_delivery_date:
+          type: string
+          format: date
+          nullable: true
+        status:
+          type: string
+          enum: [DRAFT, SUBMITTED, APPROVED, CLOSED, CANCELLED]
+        total_amount:
+          type: number
+          format: decimal
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PurchaseOrderDetail:
+      allOf:
+        - $ref: '#/components/schemas/PurchaseOrder'
+        - type: object
+          properties:
+            lines:
+              type: array
+              items:
+                $ref: '#/components/schemas/POLine'
+            goods_receipts:
+              type: array
+              items:
+                $ref: '#/components/schemas/GoodsReceipt'
+
+    POLine:
+      type: object
+      properties:
+        id:
+          type: integer
+        po_id:
+          type: integer
+        line_number:
+          type: integer
+        item_id:
+          type: integer
+        qty_ordered:
+          type: number
+          format: decimal
+        qty_received:
+          type: number
+          format: decimal
+        unit_cost:
+          type: number
+          format: decimal
+        uom:
+          type: string
+        item:
+          $ref: '#/components/schemas/Item'
+
+    GoodsReceipt:
+      type: object
+      properties:
+        id:
+          type: integer
+        po_id:
+          type: integer
+        receipt_number:
+          type: string
+        receipt_date:
+          type: string
+          format: date
+        warehouse_id:
+          type: integer
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    # Production
+    Recipe:
+      type: object
+      properties:
+        id:
+          type: integer
+        item_id:
+          type: integer
+        recipe_code:
+          type: string
+        description:
+          type: string
+        batch_size:
+          type: number
+          format: decimal
+        batch_uom:
+          type: string
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    RecipeDetail:
+      allOf:
+        - $ref: '#/components/schemas/Recipe'
+        - type: object
+          properties:
+            finished_good:
+              $ref: '#/components/schemas/Item'
+            ingredients:
+              type: array
+              items:
+                $ref: '#/components/schemas/RecipeLine'
+
+    RecipeLine:
+      type: object
+      properties:
+        id:
+          type: integer
+        recipe_id:
+          type: integer
+        line_number:
+          type: integer
+        item_id:
+          type: integer
+        qty_per_batch:
+          type: number
+          format: decimal
+        uom:
+          type: string
+        item:
+          $ref: '#/components/schemas/Item'
+
+    ProductionOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+        recipe_id:
+          type: integer
+        batch_no:
+          type: string
+        planned_qty:
+          type: number
+          format: decimal
+        actual_qty:
+          type: number
+          format: decimal
+          nullable: true
+        status:
+          type: string
+          enum: [PLANNED, RELEASED, IN_PROGRESS, COMPLETED, CLOSED, CANCELLED]
+        planned_start_date:
+          type: string
+          format: date
+        actual_start_date:
+          type: string
+          format: date
+          nullable: true
+        planned_end_date:
+          type: string
+          format: date
+        actual_end_date:
+          type: string
+          format: date
+          nullable: true
+        warehouse_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ProductionOrderDetail:
+      allOf:
+        - $ref: '#/components/schemas/ProductionOrder'
+        - type: object
+          properties:
+            recipe:
+              $ref: '#/components/schemas/RecipeDetail'
+            material_consumption:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProductionMaterial'
+            batch_attributes:
+              $ref: '#/components/schemas/BatchAttributes'
+
+    ProductionMaterial:
+      type: object
+      properties:
+        id:
+          type: integer
+        production_order_id:
+          type: integer
+        item_id:
+          type: integer
+        lot_serial_id:
+          type: integer
+          nullable: true
+        planned_qty:
+          type: number
+          format: decimal
+        consumed_qty:
+          type: number
+          format: decimal
+        uom:
+          type: string
+        item:
+          $ref: '#/components/schemas/Item'
+        lot_serial:
+          $ref: '#/components/schemas/LotSerial'
+
+    BatchAttributes:
+      type: object
+      properties:
+        id:
+          type: integer
+        production_order_id:
+          type: integer
+        brew_date:
+          type: string
+          format: date
+        tank_id:
+          type: string
+          nullable: true
+        abv:
+          type: number
+          format: float
+          nullable: true
+        og:
+          type: number
+          format: float
+          nullable: true
+        fg:
+          type: number
+          format: float
+          nullable: true
+        fermentation_days:
+          type: integer
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    # Quality Control
+    QCTest:
+      type: object
+      properties:
+        id:
+          type: integer
+        lot_serial_id:
+          type: integer
+        test_type:
+          type: string
+        test_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [PENDING, PASSED, FAILED, CANCELLED]
+        tested_by:
+          type: integer
+        notes:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    QCResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        qc_test_id:
+          type: integer
+        parameter:
+          type: string
+        expected_value:
+          type: string
+          nullable: true
+        actual_value:
+          type: string
+        result:
+          type: string
+          enum: [PASS, FAIL, WARNING]
+        notes:
+          type: string
+          nullable: true
+
+    # Traceability
+    TraceabilityReport:
+      type: object
+      properties:
+        lot_serial:
+          $ref: '#/components/schemas/LotSerial'
+        upstream:
+          type: object
+          properties:
+            raw_materials:
+              type: array
+              items:
+                $ref: '#/components/schemas/TraceabilityNode'
+            production_orders:
+              type: array
+              items:
+                $ref: '#/components/schemas/TraceabilityNode'
+        downstream:
+          type: object
+          properties:
+            finished_goods:
+              type: array
+              items:
+                $ref: '#/components/schemas/TraceabilityNode'
+            shipments:
+              type: array
+              items:
+                $ref: '#/components/schemas/TraceabilityNode'
+
+    TraceabilityNode:
+      type: object
+      properties:
+        id:
+          type: integer
+        type:
+          type: string
+          enum: [LOT, PRODUCTION_ORDER, SHIPMENT, GOODS_RECEIPT]
+        reference:
+          type: string
+        item:
+          $ref: '#/components/schemas/Item'
+        qty:
+          type: number
+          format: decimal
+        date:
+          type: string
+          format: date
+        related_lots:
+          type: array
+          items:
+            $ref: '#/components/schemas/LotSerial'
+
+    # Multi-Country Operations
+    InterCountryTransfer:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        transfer_number:
+          type: string
+        from_country_id:
+          type: integer
+        to_country_id:
+          type: integer
+        from_warehouse_id:
+          type: integer
+        to_warehouse_id:
+          type: integer
+        status:
+          type: string
+          enum: [PENDING, IN_TRANSIT, RECEIVED, CANCELLED]
+        ship_date:
+          type: string
+          format: date
+        expected_receipt_date:
+          type: string
+          format: date
+        actual_receipt_date:
+          type: string
+          format: date
+          nullable: true
+        customs_reference:
+          type: string
+          nullable: true
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransferLine'
+        created_at:
+          type: string
+          format: date-time
+
+    TransferLine:
+      type: object
+      properties:
+        id:
+          type: integer
+        transfer_id:
+          type: integer
+        item_id:
+          type: integer
+        lot_serial_id:
+          type: integer
+          nullable: true
+        qty_shipped:
+          type: number
+          format: decimal
+        qty_received:
+          type: number
+          format: decimal
+          nullable: true
+        uom:
+          type: string
+        unit_cost:
+          type: number
+          format: decimal
+        item:
+          $ref: '#/components/schemas/Item'
+
+    GlobalInventoryReport:
+      type: object
+      properties:
+        tenant_id:
+          type: integer
+        as_of_date:
+          type: string
+          format: date
+        summary:
+          type: object
+          properties:
+            total_countries:
+              type: integer
+            total_branches:
+              type: integer
+            total_warehouses:
+              type: integer
+            total_value:
+              type: number
+              format: decimal
+            currency_code:
+              type: string
+        by_country:
+          type: array
+          items:
+            type: object
+            properties:
+              country_id:
+                type: integer
+              country_name:
+                type: string
+              currency_code:
+                type: string
+              total_value:
+                type: number
+                format: decimal
+              items:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    item_id:
+                      type: integer
+                    sku:
+                      type: string
+                    description:
+                      type: string
+                    total_qty:
+                      type: number
+                      format: decimal
+                    base_uom:
+                      type: string
+                    by_warehouse:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          warehouse_id:
+                            type: integer
+                          warehouse_name:
+                            type: string
+                          qty_on_hand:
+                            type: number
+                            format: decimal
+
+    # Request/Response Models
+    InterCountryTransferRequest:
+      type: object
+      required: [from_country_id, to_country_id, from_warehouse_id, to_warehouse_id, lines]
+      properties:
+        from_country_id:
+          type: integer
+        to_country_id:
+          type: integer
+        from_warehouse_id:
+          type: integer
+        to_warehouse_id:
+          type: integer
+        ship_date:
+          type: string
+          format: date
+        expected_receipt_date:
+          type: string
+          format: date
+        customs_reference:
+          type: string
+          nullable: true
+        lines:
+          type: array
+          items:
+            type: object
+            required: [item_id, qty_shipped]
+            properties:
+              item_id:
+                type: integer
+              lot_serial_id:
+                type: integer
+                nullable: true
+              qty_shipped:
+                type: number
+                format: decimal
+              uom:
+                type: string
+              unit_cost:
+                type: number
+                format: decimal
+
+    ReceiveTransferRequest:
+      type: object
+      required: [receipt_date, lines]
+      properties:
+        receipt_date:
+          type: string
+          format: date
+        customs_reference:
+          type: string
+          nullable: true
+        lines:
+          type: array
+          items:
+            type: object
+            required: [transfer_line_id, qty_received]
+            properties:
+              transfer_line_id:
+                type: integer
+              qty_received:
+                type: number
+                format: decimal
+              new_lot_no:
+                type: string
+                nullable: true
+                description: Create new lot number in receiving country if needed
+
+    CreateItemClassRequest:
+      type: object
+      required: [code, description]
+      properties:
+        parent_id:
+          type: integer
+          nullable: true
+        code:
+          type: string
+        description:
+          type: string
+        posting_class:
+          type: string
+        default_warehouse_id:
+          type: integer
+          nullable: true
+
+    CreateItemRequest:
+      type: object
+      required: [item_class_id, sku, description]
+      properties:
+        item_class_id:
+          type: integer
+        sku:
+          type: string
+        description:
+          type: string
+        valuation_method:
+          type: string
+          enum: [STANDARD, AVERAGE, FIFO, LIFO]
+          default: STANDARD
+        planning_method:
+          type: string
+          enum: [MRP, REORDER_POINT, NONE]
+          default: NONE
+        posting_class:
+          type: string
+        tax_category:
+          type: string
+        default_warehouse_id:
+          type: integer
+        base_uom:
+          type: string
+          default: EA
+        sales_uom:
+          type: string
+        purchase_uom:
+          type: string
+        stock_item:
+          type: boolean
+          default: true
+
+    UpdateItemRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        valuation_method:
+          type: string
+          enum: [STANDARD, AVERAGE, FIFO, LIFO]
+        planning_method:
+          type: string
+          enum: [MRP, REORDER_POINT, NONE]
+        posting_class:
+          type: string
+        tax_category:
+          type: string
+        default_warehouse_id:
+          type: integer
+        sales_uom:
+          type: string
+        purchase_uom:
+          type: string
+        active:
+          type: boolean
+
+    CreateUOMConversionRequest:
+      type: object
+      required: [from_uom, to_uom, factor, operation]
+      properties:
+        from_uom:
+          type: string
+        to_uom:
+          type: string
+        factor:
+          type: number
+          format: decimal
+        operation:
+          type: string
+          enum: [MULTIPLY, DIVIDE]
+
+    CreateInventoryTransactionRequest:
+      type: object
+      required: [item_id, warehouse_id, trx_type, qty]
+      properties:
+        item_id:
+          type: integer
+        warehouse_id:
+          type: integer
+        lot_serial_id:
+          type: integer
+          nullable: true
+        trx_type:
+          type: string
+          enum: [ADJUSTMENT]
+        qty:
+          type: number
+          format: decimal
+        unit_cost:
+          type: number
+          format: decimal
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+
+    CreatePurchaseOrderRequest:
+      type: object
+      required: [supplier_id, order_date, lines]
+      properties:
+        supplier_id:
+          type: integer
+        order_date:
+          type: string
+          format: date
+        expected_delivery_date:
+          type: string
+          format: date
+          nullable: true
+        lines:
+          type: array
+          items:
+            type: object
+            required: [item_id, qty_ordered, unit_cost]
+            properties:
+              item_id:
+                type: integer
+              qty_ordered:
+                type: number
+                format: decimal
+              unit_cost:
+                type: number
+                format: decimal
+              uom:
+                type: string
+
+    CreateGoodsReceiptRequest:
+      type: object
+      required: [receipt_date, warehouse_id, receipts]
+      properties:
+        receipt_date:
+          type: string
+          format: date
+        warehouse_id:
+          type: integer
+        notes:
+          type: string
+          nullable: true
+        receipts:
+          type: array
+          items:
+            type: object
+            required: [po_line_id, qty_received]
+            properties:
+              po_line_id:
+                type: integer
+              qty_received:
+                type: number
+                format: decimal
+              lot_no:
+                type: string
+                nullable: true
+              expiry_date:
+                type: string
+                format: date
+                nullable: true
+
+    CreateRecipeRequest:
+      type: object
+      required: [item_id, recipe_code, batch_size, ingredients]
+      properties:
+        item_id:
+          type: integer
+        recipe_code:
+          type: string
+        description:
+          type: string
+        batch_size:
+          type: number
+          format: decimal
+        batch_uom:
+          type: string
+          default: EA
+        ingredients:
+          type: array
+          items:
+            type: object
+            required: [item_id, qty_per_batch]
+            properties:
+              item_id:
+                type: integer
+              qty_per_batch:
+                type: number
+                format: decimal
+              uom:
+                type: string
+
+    CreateProductionOrderRequest:
+      type: object
+      required: [recipe_id, planned_qty, planned_start_date, warehouse_id]
+      properties:
+        recipe_id:
+          type: integer
+        planned_qty:
+          type: number
+          format: decimal
+        planned_start_date:
+          type: string
+          format: date
+        planned_end_date:
+          type: string
+          format: date
+          nullable: true
+        warehouse_id:
+          type: integer
+
+    MaterialConsumptionRequest:
+      type: object
+      required: [materials]
+      properties:
+        materials:
+          type: array
+          items:
+            type: object
+            required: [item_id, consumed_qty]
+            properties:
+              item_id:
+                type: integer
+              lot_serial_id:
+                type: integer
+                nullable: true
+              consumed_qty:
+                type: number
+                format: decimal
+              uom:
+                type: string
+
+    BatchCompletionRequest:
+      type: object
+      required: [actual_qty, batch_attributes]
+      properties:
+        actual_qty:
+          type: number
+          format: decimal
+        lot_no:
+          type: string
+          nullable: true
+        batch_attributes:
+          type: object
+          properties:
+            brew_date:
+              type: string
+              format: date
+            tank_id:
+              type: string
+            abv:
+              type: number
+              format: float
+            og:
+              type: number
+              format: float
+            fg:
+              type: number
+              format: float
+            fermentation_days:
+              type: integer
+            notes:
+              type: string
+
+    CreateQCTestRequest:
+      type: object
+      required: [lot_serial_id, test_type]
+      properties:
+        lot_serial_id:
+          type: integer
+        test_type:
+          type: string
+        test_date:
+          type: string
+          format: date
+        notes:
+          type: string
+          nullable: true
+
+    QCResultRequest:
+      type: object
+      required: [results]
+      properties:
+        status:
+          type: string
+          enum: [PASSED, FAILED]
+        results:
+          type: array
+          items:
+            type: object
+            required: [parameter, actual_value, result]
+            properties:
+              parameter:
+                type: string
+              expected_value:
+                type: string
+                nullable: true
+              actual_value:
+                type: string
+              result:
+                type: string
+                enum: [PASS, FAIL, WARNING]
+              notes:
+                type: string
+                nullable: true
+
+    # Common
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        has_more:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              nullable: true
+
+tags:
+  - name: Tenant Management
+    description: Multi-tenant context management, countries, branches, and warehouses
+  - name: Inventory Management
+    description: Items, stock balances, and inventory transactions (tenant-scoped)
+  - name: Procurement
+    description: Purchase orders and goods receipts
+  - name: Production
+    description: Recipes, production orders, and batch management
+  - name: Quality Control
+    description: QC tests and results
+  - name: Traceability
+    description: Lot traceability and recall management (cross-border capable)
+  - name: Multi-Country Operations
+    description: Inter-country transfers and customs handling
+  - name: Global Reporting
+    description: Tenant-wide reporting across all countries

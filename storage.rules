@@ -1,0 +1,136 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function hasPermission(permission) {
+      return isAuthenticated() && 
+             getUserData().isActive == true &&
+             permission in getUserData().permissions;
+    }
+    
+    function isValidFileType(allowedTypes) {
+      return request.resource.contentType in allowedTypes;
+    }
+    
+    function isValidFileSize(maxSizeBytes) {
+      return request.resource.size <= maxSizeBytes;
+    }
+
+    // Company documents and files
+    match /companies/{companyId}/{allPaths=**} {
+      allow read: if isAuthenticated() && 
+                     (getUserData().companyId == companyId || hasPermission('companies:read'));
+      allow write: if hasPermission('companies:write') && 
+                      getUserData().companyId == companyId &&
+                      isValidFileSize(10 * 1024 * 1024); // 10MB limit
+      allow delete: if hasPermission('companies:delete');
+    }
+
+    // User profile images
+    match /users/{userId}/profile/{fileName} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && 
+                      request.auth.uid == userId &&
+                      isValidFileType(['image/jpeg', 'image/png', 'image/gif', 'image/webp']) &&
+                      isValidFileSize(2 * 1024 * 1024); // 2MB limit for profile images
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Item images and documents
+    match /items/{itemId}/{allPaths=**} {
+      allow read: if isAuthenticated() && hasPermission('inventory:read');
+      allow write: if hasPermission('inventory:write') &&
+                      isValidFileSize(5 * 1024 * 1024); // 5MB limit
+      allow delete: if hasPermission('inventory:delete');
+    }
+
+    // Recipe documents and images
+    match /recipes/{recipeId}/{allPaths=**} {
+      allow read: if isAuthenticated() && hasPermission('production:read');
+      allow write: if hasPermission('production:write') &&
+                      isValidFileSize(10 * 1024 * 1024); // 10MB limit
+      allow delete: if hasPermission('production:delete');
+    }
+
+    // Production order documents
+    match /production/{orderId}/{allPaths=**} {
+      allow read: if isAuthenticated() && hasPermission('production:read');
+      allow write: if hasPermission('production:write') &&
+                      isValidFileSize(10 * 1024 * 1024); // 10MB limit
+      allow delete: if hasPermission('production:delete');
+    }
+
+    // Purchase order documents
+    match /procurement/purchase-orders/{poId}/{allPaths=**} {
+      allow read: if isAuthenticated() && hasPermission('procurement:read');
+      allow write: if hasPermission('procurement:write') &&
+                      isValidFileSize(10 * 1024 * 1024); // 10MB limit
+      allow delete: if hasPermission('procurement:delete');
+    }
+
+    // Goods receipt documents
+    match /procurement/goods-receipts/{grId}/{allPaths=**} {
+      allow read: if isAuthenticated() && hasPermission('procurement:read');
+      allow write: if hasPermission('procurement:write') &&
+                      isValidFileSize(10 * 1024 * 1024); // 10MB limit
+      allow delete: if hasPermission('procurement:delete');
+    }
+
+    // QC test documents and images
+    match /quality/{testId}/{allPaths=**} {
+      allow read: if isAuthenticated() && hasPermission('quality:read');
+      allow write: if hasPermission('quality:write') &&
+                      isValidFileSize(10 * 1024 * 1024); // 10MB limit
+      allow delete: if hasPermission('quality:delete');
+    }
+
+    // Batch/lot traceability documents
+    match /traceability/{batchId}/{allPaths=**} {
+      allow read: if isAuthenticated() && hasPermission('quality:read');
+      allow write: if hasPermission('quality:write') &&
+                      isValidFileSize(10 * 1024 * 1024); // 10MB limit
+      allow delete: if hasPermission('quality:delete');
+    }
+
+    // Reports and exports
+    match /reports/{companyId}/{allPaths=**} {
+      allow read: if isAuthenticated() && 
+                     (getUserData().companyId == companyId && hasPermission('reports:read'));
+      allow write: if hasPermission('reports:write') && 
+                      getUserData().companyId == companyId &&
+                      isValidFileSize(50 * 1024 * 1024); // 50MB limit for reports
+      allow delete: if hasPermission('reports:delete');
+    }
+
+    // Temporary uploads (24 hour expiry)
+    match /temp/{userId}/{fileName} {
+      allow read, write: if isAuthenticated() && 
+                            request.auth.uid == userId &&
+                            isValidFileSize(20 * 1024 * 1024); // 20MB limit for temp files
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Public company assets (logos, etc.)
+    match /public/{companyId}/{allPaths=**} {
+      allow read: if true; // Public read access
+      allow write: if hasPermission('companies:write') && 
+                      getUserData().companyId == companyId &&
+                      isValidFileSize(5 * 1024 * 1024); // 5MB limit
+      allow delete: if hasPermission('companies:delete');
+    }
+
+    // Default deny all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

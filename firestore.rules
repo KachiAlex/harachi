@@ -1,0 +1,169 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function hasPermission(permission) {
+      return isAuthenticated() && 
+             getUserData().isActive == true &&
+             permission in getUserData().permissions;
+    }
+    
+    function belongsToSameCompany(resource) {
+      return isAuthenticated() && 
+             getUserData().companyId == resource.data.companyId;
+    }
+    
+    function isOwnerOrAdmin(resource) {
+      return isAuthenticated() && 
+             (request.auth.uid == resource.data.createdBy || 
+              getUserData().role == 'admin');
+    }
+
+    // Users collection - only admins can manage users
+    match /users/{userId} {
+      allow read: if isAuthenticated() && 
+                     (request.auth.uid == userId || hasPermission('users:read'));
+      allow create, update: if hasPermission('users:write');
+      allow delete: if hasPermission('users:delete');
+    }
+
+    // Companies collection - only admins
+    match /companies/{companyId} {
+      allow read: if isAuthenticated() && 
+                     (getUserData().companyId == companyId || hasPermission('companies:read'));
+      allow write: if hasPermission('companies:write');
+      allow delete: if hasPermission('companies:delete');
+    }
+
+    // Countries collection
+    match /countries/{countryId} {
+      allow read: if isAuthenticated() && belongsToSameCompany(resource);
+      allow write: if hasPermission('companies:write') && belongsToSameCompany(resource);
+      allow delete: if hasPermission('companies:delete');
+    }
+
+    // Branches collection
+    match /branches/{branchId} {
+      allow read: if isAuthenticated() && belongsToSameCompany(resource);
+      allow write: if hasPermission('companies:write') && belongsToSameCompany(resource);
+      allow delete: if hasPermission('companies:delete');
+    }
+
+    // Warehouses collection
+    match /warehouses/{warehouseId} {
+      allow read: if isAuthenticated() && belongsToSameCompany(resource);
+      allow write: if hasPermission('inventory:write') && belongsToSameCompany(resource);
+      allow delete: if hasPermission('inventory:delete');
+    }
+
+    // Item Classes collection
+    match /itemClasses/{itemClassId} {
+      allow read: if isAuthenticated() && belongsToSameCompany(resource);
+      allow write: if hasPermission('inventory:write') && belongsToSameCompany(resource);
+      allow delete: if hasPermission('inventory:delete');
+    }
+
+    // Items collection
+    match /items/{itemId} {
+      allow read: if isAuthenticated() && belongsToSameCompany(resource);
+      allow write: if hasPermission('inventory:write') && belongsToSameCompany(resource);
+      allow delete: if hasPermission('inventory:delete');
+    }
+
+    // Purchase Orders collection
+    match /purchaseOrders/{poId} {
+      allow read: if isAuthenticated() && 
+                     (belongsToSameCompany(resource) && hasPermission('procurement:read'));
+      allow write: if hasPermission('procurement:write') && belongsToSameCompany(resource);
+      allow delete: if hasPermission('procurement:delete');
+    }
+
+    // PO Lines collection
+    match /poLines/{lineId} {
+      allow read: if isAuthenticated() && hasPermission('procurement:read');
+      allow write: if hasPermission('procurement:write');
+      allow delete: if hasPermission('procurement:delete');
+    }
+
+    // Goods Receipts collection
+    match /goodsReceipts/{grId} {
+      allow read: if isAuthenticated() && 
+                     (belongsToSameCompany(resource) && hasPermission('procurement:read'));
+      allow write: if hasPermission('procurement:write') && belongsToSameCompany(resource);
+      allow delete: if hasPermission('procurement:delete');
+    }
+
+    // GR Lines collection
+    match /grLines/{lineId} {
+      allow read: if isAuthenticated() && hasPermission('procurement:read');
+      allow write: if hasPermission('procurement:write');
+      allow delete: if hasPermission('procurement:delete');
+    }
+
+    // Recipes collection
+    match /recipes/{recipeId} {
+      allow read: if isAuthenticated() && 
+                     (belongsToSameCompany(resource) && hasPermission('production:read'));
+      allow write: if hasPermission('production:write') && belongsToSameCompany(resource);
+      allow delete: if hasPermission('production:delete');
+    }
+
+    // Recipe Lines collection
+    match /recipeLines/{lineId} {
+      allow read: if isAuthenticated() && hasPermission('production:read');
+      allow write: if hasPermission('production:write');
+      allow delete: if hasPermission('production:delete');
+    }
+
+    // Production Orders collection
+    match /productionOrders/{orderId} {
+      allow read: if isAuthenticated() && 
+                     (belongsToSameCompany(resource) && hasPermission('production:read'));
+      allow write: if hasPermission('production:write') && belongsToSameCompany(resource);
+      allow delete: if hasPermission('production:delete');
+    }
+
+    // Batch Attributes collection
+    match /batchAttributes/{batchId} {
+      allow read: if isAuthenticated() && hasPermission('production:read');
+      allow write: if hasPermission('production:write');
+      allow delete: if hasPermission('production:delete');
+    }
+
+    // QC Tests collection
+    match /qcTests/{testId} {
+      allow read: if isAuthenticated() && 
+                     (belongsToSameCompany(resource) && hasPermission('quality:read'));
+      allow write: if hasPermission('quality:write') && belongsToSameCompany(resource);
+      allow delete: if hasPermission('quality:delete');
+    }
+
+    // QC Results collection
+    match /qcResults/{resultId} {
+      allow read: if isAuthenticated() && hasPermission('quality:read');
+      allow write: if hasPermission('quality:write');
+      allow delete: if hasPermission('quality:delete');
+    }
+
+    // Audit logs - read only for auditors and admins
+    match /auditLogs/{logId} {
+      allow read: if isAuthenticated() && 
+                     (hasPermission('reports:read') || getUserData().role == 'auditor');
+      allow write: if false; // Audit logs are system generated only
+    }
+
+    // Default deny all other documents
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
