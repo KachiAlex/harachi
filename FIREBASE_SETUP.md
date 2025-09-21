@@ -90,13 +90,28 @@ firebase deploy --only storage
 
 ## 6. Create Initial Admin User
 
-After deploying, create an admin user through the Authentication console:
-
+### Option A: Using Firebase Console (Manual)
 1. Go to Authentication > Users
 2. Click "Add user"
-3. Email: `admin@bogofood.com`
-4. Password: `admin123` (change in production!)
+3. Email: `onyedika.akoma@gmail.com`
+4. Password: `dikaoliver2660`
 5. Click "Add user"
+
+### Option B: Using Setup Script (Automated)
+1. Download your Firebase Admin SDK service account key:
+   - Go to Project Settings > Service accounts
+   - Click "Generate new private key"
+   - Save as `scripts/serviceAccountKey.json`
+
+2. Install Firebase Admin SDK:
+   ```bash
+   npm install firebase-admin
+   ```
+
+3. Run the setup script:
+   ```bash
+   node scripts/setup-admin-user.js
+   ```
 
 Then manually add user profile to Firestore:
 1. Go to Firestore Database
@@ -209,6 +224,9 @@ If you get "Firebase Storage: User does not have permission" errors:
 3. Verify user belongs to correct company
 
 ## Demo Users
+
+**Primary Admin User:**
+- **Admin**: `onyedika.akoma@gmail.com` / `dikaoliver2660`
 
 For testing purposes, create these additional users:
 

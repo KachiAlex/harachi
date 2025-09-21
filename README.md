@@ -92,8 +92,9 @@ A comprehensive ERP solution designed specifically for brewery operations with m
 
 6. **Access the application**
    - Open http://localhost:3000 in your browser
-   - Demo logins (after Firebase setup):
-     - **Admin**: admin@bogofood.com / admin123
+   - Primary admin login (after Firebase setup):
+     - **Admin**: onyedika.akoma@gmail.com / dikaoliver2660
+   - Additional demo logins:
      - **Manager**: manager@bogofood.com / manager123
      - **Operator**: operator@bogofood.com / operator123
      - **Auditor**: auditor@bogofood.com / auditor123
