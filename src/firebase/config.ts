@@ -1,6 +1,6 @@
 // Firebase configuration
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
@@ -25,5 +25,15 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
+
+// Ensure an authenticated session is available for Firestore security rules
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    signInAnonymously(auth).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error('Anonymous sign-in failed:', err);
+    });
+  }
+});
 
 export default app;

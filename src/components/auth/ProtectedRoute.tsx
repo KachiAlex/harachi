@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAppStore } from '../../store/useAppStore';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,14 +16,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { currentUser, userProfile } = useAuth();
   const location = useLocation();
+  const { userContext } = useAppStore();
 
   // If not authenticated, redirect to login
   if (!currentUser) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If user profile not loaded yet, show loading
-  if (!userProfile) {
+  // If user profile not loaded yet, try falling back to app store demo context
+  // This avoids an infinite spinner when Firebase auth is ready but profile doc is missing
+  if (!userProfile && !userContext) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
@@ -31,7 +34,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   // If user is not active, show access denied
-  if (!userProfile.isActive) {
+  if (userProfile && !userProfile.isActive) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -53,11 +56,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check permissions if required
   if (requiredPermissions.length > 0) {
-    const userPermissions = userProfile.permissions || [];
-    
+    const effectivePermissions = userProfile?.permissions || userContext?.permissions || [];
+
     const hasPermission = requireAll
-      ? requiredPermissions.every(permission => userPermissions.includes(permission))
-      : requiredPermissions.some(permission => userPermissions.includes(permission));
+      ? requiredPermissions.every(permission => effectivePermissions.includes(permission))
+      : requiredPermissions.some(permission => effectivePermissions.includes(permission));
 
     if (!hasPermission) {
       return (
