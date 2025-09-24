@@ -28,6 +28,17 @@ import QCTestsPage from './pages/quality/QCTestsPage';
 import TraceabilityPage from './pages/quality/TraceabilityPage';
 import InterCountryTransfersPage from './pages/multi-country/InterCountryTransfersPage';
 import GlobalReportsPage from './pages/multi-country/GlobalReportsPage';
+import TenantsPage from './pages/admin/TenantsPage';
+import AdminDashboard from './pages/admin/Dashboard';
+import AdminDataViewsPage from './pages/admin/DataViewsPage';
+import CountriesPage from './pages/admin/CountriesPage';
+import BranchesPage from './pages/admin/BranchesPage';
+import RolesPage from './pages/admin/RolesPage';
+import UsersPage from './pages/admin/UsersPage';
+import TenantShell from './pages/tenant/TenantShell';
+import TenantSettings from './pages/tenant/TenantSettings';
+import TenantCountries from './pages/tenant/TenantCountries';
+import TenantBranches from './pages/tenant/TenantBranches';
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -99,6 +110,54 @@ const AppContent: React.FC = () => {
                   <Dashboard />
                 </ProtectedRoute>
               } />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={
+                <ProtectedRoute requiredPermissions={['admin:tenants:read']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/tenants" element={
+                <ProtectedRoute requiredPermissions={['admin:tenants:read']}>
+                  <TenantsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/data-views" element={
+                <ProtectedRoute requiredPermissions={['admin:tenants:write']}>
+                  <AdminDataViewsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/countries" element={
+                <ProtectedRoute requiredPermissions={['admin:tenants:write']}>
+                  <CountriesPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/branches" element={
+                <ProtectedRoute requiredPermissions={['admin:tenants:write']}>
+                  <BranchesPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/roles" element={
+                <ProtectedRoute requiredPermissions={['admin:tenants:write']}>
+                  <RolesPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/users" element={
+                <ProtectedRoute requiredPermissions={['admin:tenants:write']}>
+                  <UsersPage />
+                </ProtectedRoute>
+              } />
+              
+              {/* Tenant Routes */}
+              <Route path="/t/:tenantId/*" element={
+                <ProtectedRoute requiredPermissions={['tenant:settings:read']}>
+                  <TenantShell />
+                </ProtectedRoute>
+              }>
+                <Route path="settings" element={<TenantSettings />} />
+                <Route path="countries" element={<TenantCountries />} />
+                <Route path="branches" element={<TenantBranches />} />
+              </Route>
               
               {/* Inventory Routes */}
               <Route path="/inventory/item-classes" element={

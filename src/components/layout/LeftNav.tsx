@@ -15,7 +15,9 @@ import {
   Globe, 
   ChevronLeft,
   ChevronRight,
-  Star
+  Star,
+  Building2,
+  Settings
 } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
@@ -45,6 +47,82 @@ const LeftNav: React.FC = () => {
         },
       ],
     },
+  ];
+
+  // Admin section (system-level)
+  if (userContext?.permissions?.includes('admin:tenants:read')) {
+    navSections.push({
+      title: 'Administration',
+      items: [
+        {
+          id: 'admin-home',
+          label: 'Admin Home',
+          icon: <LayoutDashboard className="w-4 h-4" />,
+          path: '/admin',
+        },
+        {
+          id: 'admin-tenants',
+          label: 'Tenants',
+          icon: <Building2 className="w-4 h-4" />,
+          path: '/admin/tenants',
+        },
+        {
+          id: 'admin-data-views',
+          label: 'Data Views',
+          icon: <FolderTree className="w-4 h-4" />,
+          path: '/admin/data-views',
+        },
+        {
+          id: 'admin-countries',
+          label: 'Countries',
+          icon: <Globe className="w-4 h-4" />,
+          path: '/admin/countries',
+        },
+        {
+          id: 'admin-branches',
+          label: 'Branches',
+          icon: <Building2 className="w-4 h-4" />,
+          path: '/admin/branches',
+        },
+        {
+          id: 'admin-roles',
+          label: 'Roles',
+          icon: <FolderTree className="w-4 h-4" />,
+          path: '/admin/roles',
+        },
+        {
+          id: 'admin-users',
+          label: 'Users',
+          icon: <Settings className="w-4 h-4" />,
+          path: '/admin/users',
+        },
+        {
+          id: 'admin-countries',
+          label: 'Countries',
+          icon: <Globe className="w-4 h-4" />,
+          path: '/admin/countries',
+        },
+      ],
+    });
+  }
+
+  // Tenant self-serve section
+  if (userContext?.tenantId && userContext?.permissions?.includes('tenant:settings:read')) {
+    navSections.push({
+      title: 'Tenant',
+      items: [
+        {
+          id: 'tenant-settings',
+          label: 'Settings',
+          icon: <Settings className="w-4 h-4" />,
+          path: `/t/${userContext.tenantId}/settings`,
+        },
+      ],
+    });
+  }
+
+  // Existing sections
+  navSections.push(
     {
       title: 'Inventory',
       items: [
@@ -127,8 +205,8 @@ const LeftNav: React.FC = () => {
           path: '/quality/traceability',
         },
       ],
-    },
-  ];
+    }
+  );
 
   // Add multi-country section only for enterprise tenants
   if (userContext?.tenantId && userContext?.permissions?.includes('global:read')) {

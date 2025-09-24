@@ -6,15 +6,15 @@ import { getStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v9-compat and later, measurementId is optional
+// Uses environment variables when available; falls back to known project values
 const firebaseConfig = {
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
-  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || 'AIzaSyBcHsT4Ka7omMClp9PcxhAF99joccRwHLQ',
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || 'harachi.firebaseapp.com',
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || 'harachi',
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || 'harachi.appspot.com',
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || '820003029377',
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || '1:820003029377:web:1c7eed417216de80f06880',
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || 'G-0VVM69P31M'
 };
 
 // Initialize Firebase

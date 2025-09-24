@@ -12,7 +12,7 @@ const CountrySelector: React.FC = () => {
   
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSelectCountry = async (countryId: number) => {
+  const handleSelectCountry = async (countryId: string) => {
     await switchCountry(countryId);
     setIsOpen(false);
   };

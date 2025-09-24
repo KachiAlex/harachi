@@ -53,7 +53,7 @@ const RecipesPage: React.FC = () => {
 
   const filteredRecipes = recipes.filter(recipe => 
     recipe.recipeCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    recipe.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (recipe.description && recipe.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const handleRecipeSelect = (recipe: Recipe) => {

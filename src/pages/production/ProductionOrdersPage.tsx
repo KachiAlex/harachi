@@ -36,7 +36,7 @@ const ProductionOrdersPage: React.FC = () => {
       actualStartDate: new Date('2024-01-15'),
       plannedEndDate: new Date('2024-01-20'),
       actualEndDate: new Date('2024-01-19'),
-      warehouseId: 2,
+      warehouseId: '2',
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -50,7 +50,7 @@ const ProductionOrdersPage: React.FC = () => {
       plannedStartDate: new Date('2024-01-22'),
       actualStartDate: new Date('2024-01-22'),
       plannedEndDate: new Date('2024-01-27'),
-      warehouseId: 2,
+      warehouseId: '2',
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -63,7 +63,7 @@ const ProductionOrdersPage: React.FC = () => {
       status: 'PLANNED',
       plannedStartDate: new Date('2024-01-29'),
       plannedEndDate: new Date('2024-02-03'),
-      warehouseId: 2,
+      warehouseId: '2',
       createdAt: new Date(),
       updatedAt: new Date(),
     }
@@ -103,7 +103,7 @@ const ProductionOrdersPage: React.FC = () => {
       status: 'PLANNED',
       plannedStartDate: new Date(),
       plannedEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      warehouseId: 2,
+      warehouseId: '2',
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -239,12 +239,12 @@ const ProductionOrderDetail: React.FC<ProductionOrderDetailProps> = ({ order, re
   const handleBatchChange = (field: keyof BatchAttributes, value: any) => {
     if (!batchData) {
       setBatchData({
-        id: '',
+        id: Date.now().toString(),
         productionOrderId: formData.id,
         [field]: value
       } as BatchAttributes);
     } else {
-      setBatchData(prev => ({ ...prev, [field]: value }));
+      setBatchData(prev => prev ? ({ ...prev, [field]: value }) : undefined);
     }
   };
 
@@ -411,7 +411,7 @@ const GeneralTab: React.FC<GeneralTabProps> = ({ formData, onChange, recipe, war
             </label>
             <select
               value={formData.warehouseId}
-              onChange={(e) => onChange('warehouseId', parseInt(e.target.value))}
+              onChange={(e) => onChange('warehouseId', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {warehouses.map(warehouse => (

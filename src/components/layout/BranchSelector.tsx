@@ -12,7 +12,7 @@ const BranchSelector: React.FC = () => {
   
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleSelectBranch = async (branchId: number) => {
+  const handleSelectBranch = async (branchId: string) => {
     await switchBranch(branchId);
     setIsOpen(false);
   };

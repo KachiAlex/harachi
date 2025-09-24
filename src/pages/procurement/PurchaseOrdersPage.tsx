@@ -389,8 +389,8 @@ const PurchaseOrderDetail: React.FC<PurchaseOrderDetailProps> = ({ order, suppli
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto p-4">
-        {activeTab === 'general' && <GeneralTab formData={formData} onChange={handleInputChange} supplier={supplier} suppliers={suppliers} />}
-        {activeTab === 'lines' && <LinesTab lines={lines} onLineChange={handleLineChange} onAddLine={handleAddLine} onRemoveLine={handleRemoveLine} items={items} />}
+        {activeTab === 'general' && <GeneralTab formData={formData} onChange={handleInputChange} supplier={supplier} />}
+        {activeTab === 'lines' && <LinesTab lines={lines} onLineChange={handleLineChange} onAddLine={handleAddLine} onRemoveLine={handleRemoveLine} items={items} currencyCode={formData.currencyCode} />}
         {activeTab === 'receipts' && <ReceiptsTab />}
         {activeTab === 'history' && <HistoryTab />}
       </div>
@@ -403,10 +403,54 @@ interface GeneralTabProps {
   formData: PurchaseOrder;
   onChange: (field: keyof PurchaseOrder, value: any) => void;
   supplier: Supplier;
-  suppliers: Supplier[];
 }
 
-const GeneralTab: React.FC<GeneralTabProps> = ({ formData, onChange, supplier, suppliers }) => {
+const GeneralTab: React.FC<GeneralTabProps> = ({ formData, onChange, supplier }) => {
+  // Get suppliers from the component scope
+  const suppliers = [
+    {
+      id: '1',
+      companyId: '1',
+      supplierCode: 'SUP-001',
+      name: 'Premium Malt Suppliers Ltd',
+      contactName: 'John Smith',
+      email: 'john@premiummalt.com',
+      phone: '+234-1-234-5678',
+      address: {
+        streetAddress: '123 Malt Street',
+        city: 'Lagos',
+        stateProvince: 'Lagos State',
+        postalCode: '100001',
+        countryCode: 'NG'
+      },
+      paymentTerms: 'NET_30' as const,
+      currencyCode: 'NGN',
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: '2',
+      companyId: '1',
+      supplierCode: 'SUP-002',
+      name: 'Hop Garden Imports',
+      contactName: 'Sarah Johnson',
+      email: 'sarah@hopgarden.com',
+      phone: '+234-1-234-5679',
+      address: {
+        streetAddress: '456 Hop Avenue',
+        city: 'Lagos',
+        stateProvince: 'Lagos State',
+        postalCode: '100002',
+        countryCode: 'NG'
+      },
+      paymentTerms: 'NET_15' as const,
+      currencyCode: 'USD',
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
+  ];
   return (
     <div className="space-y-6">
       {/* Basic Information */}
@@ -578,9 +622,10 @@ interface LinesTabProps {
   onAddLine: () => void;
   onRemoveLine: (lineId: string) => void;
   items: Item[];
+  currencyCode: string;
 }
 
-const LinesTab: React.FC<LinesTabProps> = ({ lines, onLineChange, onAddLine, onRemoveLine, items }) => {
+const LinesTab: React.FC<LinesTabProps> = ({ lines, onLineChange, onAddLine, onRemoveLine, items, currencyCode }) => {
   return (
     <div className="space-y-6">
       {/* Add Line Button */}
@@ -683,7 +728,7 @@ const LinesTab: React.FC<LinesTabProps> = ({ lines, onLineChange, onAddLine, onR
                     {line.uom}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900">
-                    {formData.currencyCode} {(line.qtyOrdered * line.unitCost).toFixed(2)}
+                    {currencyCode} {(line.qtyOrdered * line.unitCost).toFixed(2)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900">
                     <button

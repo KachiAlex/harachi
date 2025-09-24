@@ -17,7 +17,7 @@ const CompanySelector: React.FC = () => {
     company.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSelectCompany = async (companyId: number) => {
+  const handleSelectCompany = async (companyId: string) => {
     await switchTenant(companyId);
     setIsOpen(false);
     setSearchQuery('');

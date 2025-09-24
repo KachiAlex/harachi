@@ -376,7 +376,7 @@ const LotTraceabilityView: React.FC<{ data: any }> = ({ data }) => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {transactions.map(transaction => (
+              {transactions.map((transaction: InventoryTransaction) => (
                 <tr key={transaction.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-900">
                     {transaction.transactionDate.toLocaleDateString()}
@@ -416,7 +416,7 @@ const LotTraceabilityView: React.FC<{ data: any }> = ({ data }) => {
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <h3 className="text-lg font-semibold mb-4">Quality Control History</h3>
         <div className="space-y-3">
-          {qcTests.map(test => (
+          {qcTests.map((test: QCTest) => (
             <div key={test.id} className="p-4 border border-gray-200 rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <div className="font-medium text-sm">{test.testType.replace('_', ' ')}</div>

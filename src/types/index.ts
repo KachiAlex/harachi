@@ -1,7 +1,7 @@
 // Core Types for Brewery ERP System
 
 export interface Company {
-  id: number;
+  id: string;
   name: string;
   taxId?: string;
   slug: string;
@@ -11,9 +11,94 @@ export interface Company {
   updatedAt: string;
 }
 
+// Multi-tenant core types
+export type SystemRole = 'SYSTEM_ADMIN' | 'TENANT_ADMIN' | 'TENANT_MANAGER' | 'TENANT_OPERATOR' | 'TENANT_AUDITOR';
+
+export interface Tenant {
+  id: string;            // GUID/ULID
+  name: string;          // Legal/business name
+  slug: string;          // URL-safe identifier
+  domain?: string;       // Custom domain (optional)
+  subscriptionTier: 'BASIC' | 'PREMIUM' | 'ENTERPRISE';
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;
+  updatedBy: string;
+}
+
+export interface TenantCountry {
+  id: string;
+  tenantId: string;
+  name: string;
+  countryCode: string;   // ISO 3166-1 alpha-2
+  currencyCode: string;  // ISO 4217
+  timezone: string;      // IANA timezone
+  taxSystem: 'VAT' | 'GST' | 'SALES_TAX' | 'NONE';
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface TenantBranch {
+  id: string;
+  tenantId: string;
+  countryId: string;     // references TenantCountry.id
+  name: string;
+  code: string;
+  branchType: 'BREWERY' | 'PACKAGING' | 'TAPROOM' | 'DISTRIBUTION' | 'WAREHOUSE';
+  address?: Address;
+  contactInfo?: ContactInfo;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export type Permission =
+  | 'admin:tenants:read'
+  | 'admin:tenants:write'
+  | 'tenant:settings:read'
+  | 'tenant:settings:write'
+  | 'inventory:read'
+  | 'inventory:write'
+  | 'production:read'
+  | 'production:write'
+  | 'procurement:read'
+  | 'procurement:write'
+  | 'quality:read'
+  | 'quality:write'
+  | 'reports:read'
+  | 'global:read';
+
+// RBAC Entities
+export interface Role {
+  id: string;
+  tenantId?: string; // undefined means system-level role
+  name: string;
+  description?: string;
+  permissions: Permission[];
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserProfile {
+  id: string; // auth uid
+  email: string;
+  displayName?: string;
+  tenantId?: string;
+  countryId?: string;
+  branchId?: string;
+  roleId?: string; // references Role.id
+  permissions?: Permission[]; // effective overrides (optional)
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Country {
-  id: number;
-  companyId: number;
+  id: string;
+  companyId: string;
   name: string;
   countryCode: string; // ISO 3166-1 alpha-2
   currencyCode: string; // ISO 4217
@@ -24,8 +109,8 @@ export interface Country {
 }
 
 export interface Branch {
-  id: number;
-  countryId: number;
+  id: string;
+  countryId: string;
   name: string;
   branchCode: string;
   branchType: 'BREWERY' | 'PACKAGING' | 'TAPROOM' | 'DISTRIBUTION' | 'WAREHOUSE';
@@ -36,8 +121,8 @@ export interface Branch {
 }
 
 export interface Warehouse {
-  id: number;
-  branchId: number;
+  id: string;
+  branchId: string;
   code: string;
   name: string;
   warehouseType: 'RAW_MATERIALS' | 'WORK_IN_PROCESS' | 'FINISHED_GOODS' | 'PACKAGING' | 'GENERAL';
@@ -61,15 +146,15 @@ export interface ContactInfo {
 }
 
 export interface UserContext {
-  tenantId: number;
+  tenantId: string;
   tenantName: string;
-  countryId?: number;
+  countryId?: string;
   countryName?: string;
   countryCode?: string;
   currencyCode?: string;
-  branchId?: number;
+  branchId?: string;
   branchName?: string;
-  defaultWarehouseId?: number;
+  defaultWarehouseId?: string;
   permissions: string[];
   businessDate: string;
 }
@@ -138,20 +223,20 @@ export interface UOMConversion {
 }
 
 export interface LotSerial {
-  id: number;
-  itemId: number;
+  id: string;
+  itemId: string;
   lotNo: string;
-  manufactureDate?: string;
-  expiryDate?: string;
+  manufactureDate?: Date;
+  expiryDate?: Date;
   supplierLot?: string;
-  createdAt: string;
+  createdAt: Date;
 }
 
 export interface StockBalance {
-  id: number;
-  itemId: number;
-  warehouseId: number;
-  lotSerialId?: number;
+  id: string;
+  itemId: string;
+  warehouseId: string;
+  lotSerialId?: string;
   qtyOnHand: number;
   qtyAllocated: number;
   qtyAvailable: number;
@@ -161,19 +246,19 @@ export interface StockBalance {
 }
 
 export interface InventoryTransaction {
-  id: number;
-  itemId: number;
-  warehouseId: number;
-  lotSerialId?: number;
+  id: string;
+  itemId: string;
+  warehouseId: string;
+  lotSerialId?: string;
   trxType: 'RECEIPT' | 'ISSUE' | 'ADJUSTMENT' | 'TRANSFER' | 'PRODUCTION_CONSUME' | 'PRODUCTION_YIELD';
   qty: number;
   unitCost?: number;
   referenceType?: string;
-  referenceId?: number;
+  referenceId?: string;
   notes?: string;
-  transactionDate: string;
-  createdBy: number;
-  createdAt: string;
+  transactionDate: Date;
+  createdBy: string;
+  createdAt: Date;
 }
 
 export interface Supplier {
@@ -249,16 +334,16 @@ export interface GRLine {
 }
 
 export interface Recipe {
-  id: number;
-  companyId: number;
-  itemId: number;
+  id: string;
+  companyId: string;
+  itemId: string;
   recipeCode: string;
   description?: string;
   batchSize: number;
   batchUom: string;
   active: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface RecipeDetail extends Recipe {
@@ -267,30 +352,30 @@ export interface RecipeDetail extends Recipe {
 }
 
 export interface RecipeLine {
-  id: number;
-  recipeId: number;
+  id: string;
+  recipeId: string;
   lineNumber: number;
-  itemId: number;
+  itemId: string;
   qtyPerBatch: number;
   uom: string;
   item: Item;
 }
 
 export interface ProductionOrder {
-  id: number;
-  companyId: number;
-  recipeId: number;
+  id: string;
+  companyId: string;
+  recipeId: string;
   batchNo: string;
   plannedQty: number;
   actualQty?: number;
   status: 'PLANNED' | 'RELEASED' | 'IN_PROGRESS' | 'COMPLETED' | 'CLOSED' | 'CANCELLED';
-  plannedStartDate: string;
-  actualStartDate?: string;
-  plannedEndDate?: string;
-  actualEndDate?: string;
-  warehouseId: number;
-  createdAt: string;
-  updatedAt: string;
+  plannedStartDate: Date;
+  actualStartDate?: Date;
+  plannedEndDate?: Date;
+  actualEndDate?: Date;
+  warehouseId: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface ProductionOrderDetail extends ProductionOrder {
@@ -300,10 +385,10 @@ export interface ProductionOrderDetail extends ProductionOrder {
 }
 
 export interface ProductionMaterial {
-  id: number;
-  productionOrderId: number;
-  itemId: number;
-  lotSerialId?: number;
+  id: string;
+  productionOrderId: string;
+  itemId: string;
+  lotSerialId?: string;
   plannedQty: number;
   consumedQty: number;
   uom: string;
@@ -312,9 +397,9 @@ export interface ProductionMaterial {
 }
 
 export interface BatchAttributes {
-  id: number;
-  productionOrderId: number;
-  brewDate?: string;
+  id: string;
+  productionOrderId: string;
+  brewDate?: Date;
   tankId?: string;
   abv?: number; // Alcohol by volume
   og?: number;  // Original gravity

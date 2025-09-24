@@ -28,86 +28,15 @@
   animation: spin 1s linear infinite;
 }
 
-@layer base {
-  html {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
-  
-  body {
-    @apply bg-gray-50 text-gray-900;
-  }
-}
-
+/* Utility: Nav item */
 @layer components {
-  .btn {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background;
-  }
-  
-  .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 h-10 py-2 px-4;
-  }
-  
-  .btn-secondary {
-    @apply bg-gray-100 text-gray-900 hover:bg-gray-200 h-10 py-2 px-4;
-  }
-  
-  .btn-ghost {
-    @apply hover:bg-gray-100 hover:text-gray-900 h-10 py-2 px-4;
-  }
-  
-  .input {
-    @apply flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  
-  .select {
-    @apply flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
-  }
-  
-  .card {
-    @apply rounded-lg border border-gray-200 bg-white text-gray-950 shadow-sm;
-  }
-  
-  .table {
-    @apply w-full caption-bottom text-sm;
-  }
-  
-  .table-header {
-    @apply border-b;
-  }
-  
-  .table-row {
-    @apply border-b transition-colors hover:bg-gray-50/50 data-[state=selected]:bg-gray-50;
-  }
-  
-  .table-head {
-    @apply h-12 px-4 text-left align-middle font-medium text-gray-500 [&:has([role=checkbox])]:pr-0;
-  }
-  
-  .table-cell {
-    @apply p-4 align-middle [&:has([role=checkbox])]:pr-0;
-  }
-  
-  .status-badge {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
-  }
-  
-  .status-active {
-    @apply bg-green-100 text-green-800;
-  }
-  
-  .status-pending {
-    @apply bg-yellow-100 text-yellow-800;
-  }
-  
-  .status-failed {
-    @apply bg-red-100 text-red-800;
-  }
-  
   .nav-item {
-    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-gray-700 transition-all hover:bg-gray-100 hover:text-gray-900;
+    @apply flex items-center gap-3 px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-primary-50 hover:text-primary-700 transition-colors;
   }
-  
   .nav-item.active {
-    @apply bg-primary-100 text-primary-900;
+    @apply bg-primary-100 text-primary-700 font-medium;
+  }
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary-600 text-white hover:bg-primary-700 text-sm;
   }
 }

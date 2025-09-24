@@ -8,7 +8,7 @@ const ItemClassesPage: React.FC = () => {
   const { userContext, setRightRailOpen } = useAppStore();
   const [itemClasses, setItemClasses] = useState<ItemClass[]>([]);
   const [selectedClass, setSelectedClass] = useState<ItemClass | null>(null);
-  const [expandedNodes, setExpandedNodes] = useState<Set<number>>(new Set());
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['1', '2']));
   const [editingClass, setEditingClass] = useState<Partial<ItemClass> | null>(null);
   const [showNewClassForm, setShowNewClassForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -16,95 +16,131 @@ const ItemClassesPage: React.FC = () => {
   // Mock data - replace with API call
   const mockItemClasses: ItemClass[] = [
     {
-      id: 1,
-      companyId: 1,
+      id: '1',
+      companyId: '1',
       code: 'RAW',
-      description: 'Raw Materials',
+      name: 'Raw Materials',
+      description: 'Raw materials for brewing',
       postingClass: 'RAW_MATERIALS',
-      defaultWarehouseId: 1,
-      createdAt: '2024-01-01T00:00:00Z',
+      defaultWarehouseId: '1',
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+      createdBy: 'system',
+      updatedBy: 'system',
       children: [
         {
-          id: 4,
-          companyId: 1,
-          parentId: 1,
+          id: '4',
+          companyId: '1',
+          parentId: '1',
           code: 'GRAINS',
+          name: 'Grains',
           description: 'Grains & Malts',
           postingClass: 'RAW_MATERIALS',
-          defaultWarehouseId: 1,
-          createdAt: '2024-01-01T00:00:00Z',
+          defaultWarehouseId: '1',
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+      createdBy: 'system',
+      updatedBy: 'system',
         },
         {
-          id: 5,
-          companyId: 1,
-          parentId: 1,
+          id: '5',
+          companyId: '1',
+          parentId: '1',
           code: 'HOPS',
-          description: 'Hops',
+          name: 'Hops',
+          description: 'Hops for flavoring',
           postingClass: 'RAW_MATERIALS',
-          defaultWarehouseId: 1,
-          createdAt: '2024-01-01T00:00:00Z',
+          defaultWarehouseId: '1',
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+      createdBy: 'system',
+      updatedBy: 'system',
         },
         {
-          id: 6,
-          companyId: 1,
-          parentId: 1,
+          id: '6',
+          companyId: '1',
+          parentId: '1',
           code: 'YEAST',
-          description: 'Yeast',
+          name: 'Yeast',
+          description: 'Brewing yeast',
           postingClass: 'RAW_MATERIALS',
-          defaultWarehouseId: 1,
-          createdAt: '2024-01-01T00:00:00Z',
+          defaultWarehouseId: '1',
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+      createdBy: 'system',
+      updatedBy: 'system',
         },
       ]
     },
     {
-      id: 2,
-      companyId: 1,
+      id: '2',
+      companyId: '1',
       code: 'PACK',
-      description: 'Packaging Materials',
+      name: 'Packaging',
+      description: 'Packaging materials',
       postingClass: 'PACKAGING',
-      defaultWarehouseId: 2,
-      createdAt: '2024-01-01T00:00:00Z',
+      defaultWarehouseId: '2',
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+      createdBy: 'system',
+      updatedBy: 'system',
       children: [
         {
-          id: 7,
-          companyId: 1,
-          parentId: 2,
+          id: '7',
+          companyId: '1',
+          parentId: '2',
           code: 'BOTTLES',
-          description: 'Bottles',
+          name: 'Bottles',
+          description: 'Glass bottles',
           postingClass: 'PACKAGING',
-          defaultWarehouseId: 2,
-          createdAt: '2024-01-01T00:00:00Z',
+          defaultWarehouseId: '2',
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+      createdBy: 'system',
+      updatedBy: 'system',
         },
         {
-          id: 8,
-          companyId: 1,
-          parentId: 2,
+          id: '8',
+          companyId: '1',
+          parentId: '2',
           code: 'CANS',
-          description: 'Cans',
+          name: 'Cans',
+          description: 'Aluminum cans',
           postingClass: 'PACKAGING',
-          defaultWarehouseId: 2,
-          createdAt: '2024-01-01T00:00:00Z',
+          defaultWarehouseId: '2',
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+      createdBy: 'system',
+      updatedBy: 'system',
         },
       ]
     },
     {
-      id: 3,
-      companyId: 1,
+      id: '3',
+      companyId: '1',
       code: 'FG',
-      description: 'Finished Goods',
+      name: 'Finished Goods',
+      description: 'Finished beer products',
       postingClass: 'FINISHED_GOODS',
-      defaultWarehouseId: 3,
-      createdAt: '2024-01-01T00:00:00Z',
+      defaultWarehouseId: '3',
+      createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+      createdBy: 'system',
+      updatedBy: 'system',
       children: [
         {
-          id: 9,
-          companyId: 1,
-          parentId: 3,
+          id: '9',
+          companyId: '1',
+          parentId: '3',
           code: 'BEER',
-          description: 'Beer Products',
+          name: 'Beer',
+          description: 'Beer products',
           postingClass: 'FINISHED_GOODS',
-          defaultWarehouseId: 3,
-          createdAt: '2024-01-01T00:00:00Z',
+          defaultWarehouseId: '3',
+          createdAt: new Date('2024-01-01T00:00:00Z'),
+      updatedAt: new Date('2024-01-01T00:00:00Z'),
+      createdBy: 'system',
+      updatedBy: 'system',
         },
       ]
     },
@@ -114,13 +150,13 @@ const ItemClassesPage: React.FC = () => {
     // Simulate API loading
     setTimeout(() => {
       setItemClasses(mockItemClasses);
-      setExpandedNodes(new Set([1, 2])); // Expand first two nodes by default
+      setExpandedNodes(new Set(['1', '2'])); // Expand first two nodes by default
       setSelectedClass(mockItemClasses[0]); // Select first class by default
       setLoading(false);
     }, 500);
   }, []);
 
-  const toggleNode = (nodeId: number) => {
+  const toggleNode = (nodeId: string) => {
     const newExpanded = new Set(expandedNodes);
     if (newExpanded.has(nodeId)) {
       newExpanded.delete(nodeId);
@@ -163,9 +199,10 @@ const ItemClassesPage: React.FC = () => {
   const startNewClass = () => {
     setShowNewClassForm(true);
     setEditingClass({
-      companyId: userContext?.tenantId || 1,
+      companyId: userContext?.tenantId || '1',
       parentId: selectedClass?.id,
       code: '',
+      name: '',
       description: '',
       postingClass: selectedClass?.postingClass || 'RAW_MATERIALS',
       defaultWarehouseId: selectedClass?.defaultWarehouseId,
@@ -388,7 +425,7 @@ const ItemClassesPage: React.FC = () => {
                     {editingClass || showNewClassForm ? (
                       <select
                         value={editingClass?.parentId || ''}
-                        onChange={(e) => setEditingClass(prev => prev ? { ...prev, parentId: e.target.value ? parseInt(e.target.value) : undefined } : null)}
+                        onChange={(e) => setEditingClass(prev => prev ? { ...prev, parentId: e.target.value || undefined } : null)}
                         className="select"
                       >
                         <option value="">Root Level</option>
@@ -445,7 +482,7 @@ const ItemClassesPage: React.FC = () => {
                     {editingClass || showNewClassForm ? (
                       <select
                         value={editingClass?.defaultWarehouseId || ''}
-                        onChange={(e) => setEditingClass(prev => prev ? { ...prev, defaultWarehouseId: e.target.value ? parseInt(e.target.value) : undefined } : null)}
+                        onChange={(e) => setEditingClass(prev => prev ? { ...prev, defaultWarehouseId: e.target.value || undefined } : null)}
                         className="select"
                       >
                         <option value="">Select warehouse</option>

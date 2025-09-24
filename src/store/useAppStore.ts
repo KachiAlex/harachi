@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { UserContext, Company, Country, Branch, Warehouse, Item, ItemClass } from '../types';
+import { FirestoreService } from '../services/firestoreService';
 
 interface AppState {
   // Context Management
@@ -55,9 +56,9 @@ interface AppState {
   setBusinessDate: (date: string) => void;
   
   // Context switching
-  switchTenant: (tenantId: number) => Promise<void>;
-  switchCountry: (countryId: number) => Promise<void>;
-  switchBranch: (branchId: number) => Promise<void>;
+  switchTenant: (tenantId: string) => Promise<void>;
+  switchCountry: (countryId: string) => Promise<void>;
+  switchBranch: (branchId: string) => Promise<void>;
   
   // Initialization
   initializeApp: () => Promise<void>;
@@ -109,7 +110,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   setBusinessDate: (date) => set({ businessDate: date }),
   
   // Context switching actions
-  switchTenant: async (tenantId: number) => {
+  switchTenant: async (tenantId: string) => {
     const { setLoading, setError, setUserContext } = get();
     
     try {
@@ -122,7 +123,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       // Mock response for now
       const mockContext: UserContext = {
         tenantId: tenantId,
-        tenantName: tenantId === 1 ? 'Global Brewing Co.' : 'Craft Collective Ltd.',
+        tenantName: tenantId === '1' ? 'Bogo Food & Beverage' : 'Other Company',
         countryId: undefined,
         countryName: undefined,
         countryCode: undefined,
@@ -147,7 +148,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
   
-  switchCountry: async (countryId: number) => {
+  switchCountry: async (countryId: string) => {
     const { setLoading, setError, userContext, setUserContext, availableCountries } = get();
     
     if (!userContext) return;
@@ -191,7 +192,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
   
-  switchBranch: async (branchId: number) => {
+  switchBranch: async (branchId: string) => {
     const { setLoading, setError, userContext, setUserContext, availableBranches } = get();
     
     if (!userContext) return;
@@ -234,361 +235,51 @@ export const useAppStore = create<AppState>((set, get) => ({
       setLoading(true);
       setError(null);
       
-      // TODO: Load user context and available tenants from API
-      // const [contextResponse, companiesResponse] = await Promise.all([
-      //   api.get('/context'),
-      //   api.get('/tenants')
-      // ]);
+      // Load data from Firestore
+      const [companies, countries, branches, warehouses, itemClasses, items] = await Promise.all([
+        FirestoreService.getCompanies(),
+        FirestoreService.getCountries(),
+        FirestoreService.getBranches(),
+        FirestoreService.getWarehouses(),
+        FirestoreService.getItemClassesByCompany('harachi-demo'),
+        FirestoreService.getItemsByCompany('harachi-demo')
+      ]);
       
-      // Mock data for now
+      // Mock user context for now (will be replaced with real auth)
       const mockContext: UserContext = {
-        tenantId: 1,
-        tenantName: 'Bogo Food & Beverage',
-        countryId: 1,
-        countryName: 'Nigeria',
-        countryCode: 'NG',
-        currencyCode: 'NGN',
-        branchId: 1,
-        branchName: 'Lagos Brewery',
-        defaultWarehouseId: 1,
+        tenantId: 'harachi-demo',
+        tenantName: 'Harachi Demo Tenant',
+        countryId: countries[0]?.id,
+        countryName: countries[0]?.name,
+        countryCode: countries[0]?.countryCode,
+        currencyCode: countries[0]?.currencyCode,
+        branchId: branches[0]?.id,
+        branchName: branches[0]?.name,
+        defaultWarehouseId: warehouses[0]?.id,
         permissions: [
+          'admin:tenants:read', 'admin:tenants:write',
+          'tenant:settings:read', 'tenant:settings:write',
           'inventory:read', 'inventory:write',
           'production:read', 'production:write',
           'quality:read', 'quality:write',
-          'procurement:read', 'procurement:write'
+          'procurement:read', 'procurement:write',
+          'reports:read', 'global:read'
         ],
         businessDate: get().businessDate,
       };
       
-      const mockCompanies: Company[] = [
-        {
-          id: 1,
-          name: 'Bogo Food & Beverage',
-          slug: 'bogo-food-beverage',
-          subscriptionTier: 'ENTERPRISE',
-          active: true,
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z',
-        }
-      ];
-      
-      const mockCountries: Country[] = [
-        {
-          id: 1,
-          companyId: 1,
-          name: 'Nigeria',
-          countryCode: 'NG',
-          currencyCode: 'NGN',
-          taxSystem: 'VAT',
-          timezone: 'Africa/Lagos',
-          active: true,
-          createdAt: '2024-01-01T00:00:00Z',
-        },
-        {
-          id: 2,
-          companyId: 1,
-          name: 'Kenya',
-          countryCode: 'KE',
-          currencyCode: 'KES',
-          taxSystem: 'VAT',
-          timezone: 'Africa/Nairobi',
-          active: true,
-          createdAt: '2024-01-01T00:00:00Z',
-        },
-        {
-          id: 3,
-          companyId: 1,
-          name: 'Ghana',
-          countryCode: 'GH',
-          currencyCode: 'GHS',
-          taxSystem: 'VAT',
-          timezone: 'Africa/Accra',
-          active: true,
-          createdAt: '2024-01-01T00:00:00Z',
-        }
-      ];
-
-      const mockBranches: Branch[] = [
-        {
-          id: 1,
-          countryId: 1,
-          name: 'Lagos Brewery',
-          branchCode: 'LAG001',
-          branchType: 'BREWERY',
-          address: {
-            streetAddress: '123 Industrial Road',
-            city: 'Lagos',
-            stateProvince: 'Lagos State',
-            postalCode: '100001',
-            countryCode: 'NG'
-          },
-          contactInfo: {
-            phone: '+234-1-234-5678',
-            email: 'lagos@bogofood.com'
-          },
-          active: true,
-          createdAt: '2024-01-01T00:00:00Z',
-        },
-        {
-          id: 2,
-          countryId: 2,
-          name: 'Nairobi Plant',
-          branchCode: 'NAI001',
-          branchType: 'BREWERY',
-          address: {
-            streetAddress: '456 Manufacturing Street',
-            city: 'Nairobi',
-            stateProvince: 'Nairobi',
-            postalCode: '00100',
-            countryCode: 'KE'
-          },
-          contactInfo: {
-            phone: '+254-20-123-4567',
-            email: 'nairobi@bogofood.com'
-          },
-          active: true,
-          createdAt: '2024-01-01T00:00:00Z',
-        }
-      ];
-
-      const mockWarehouses: Warehouse[] = [
-        {
-          id: 1,
-          branchId: 1,
-          code: 'LAG-RM-01',
-          name: 'Raw Materials Warehouse',
-          warehouseType: 'RAW_MATERIALS',
-          temperatureControlled: true,
-          active: true,
-          createdAt: '2024-01-01T00:00:00Z',
-        },
-        {
-          id: 2,
-          branchId: 1,
-          code: 'LAG-WIP-01',
-          name: 'Work in Process',
-          warehouseType: 'WORK_IN_PROCESS',
-          temperatureControlled: true,
-          active: true,
-          createdAt: '2024-01-01T00:00:00Z',
-        },
-        {
-          id: 3,
-          branchId: 1,
-          code: 'LAG-FG-01',
-          name: 'Finished Goods Warehouse',
-          warehouseType: 'FINISHED_GOODS',
-          temperatureControlled: false,
-          active: true,
-          createdAt: '2024-01-01T00:00:00Z',
-        }
-      ];
-
-      const mockItemClasses: ItemClass[] = [
-        {
-          id: '1',
-          companyId: '1',
-          code: 'RM',
-          name: 'Raw Materials',
-          description: 'Raw materials for brewing',
-          postingClass: 'RM',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          createdBy: 'system',
-          updatedBy: 'system',
-          children: [
-            {
-              id: '2',
-              companyId: '1',
-              parentId: '1',
-              code: 'RM-GRAIN',
-              name: 'Grains',
-              description: 'Malt and other grains',
-              postingClass: 'RM-GRAIN',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              createdBy: 'system',
-              updatedBy: 'system',
-            },
-            {
-              id: '3',
-              companyId: '1',
-              parentId: '1',
-              code: 'RM-HOPS',
-              name: 'Hops',
-              description: 'Hops for flavoring',
-              postingClass: 'RM-HOPS',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              createdBy: 'system',
-              updatedBy: 'system',
-            }
-          ]
-        },
-        {
-          id: '4',
-          companyId: '1',
-          code: 'PKG',
-          name: 'Packaging',
-          description: 'Packaging materials',
-          postingClass: 'PKG',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          createdBy: 'system',
-          updatedBy: 'system',
-          children: [
-            {
-              id: '5',
-              companyId: '1',
-              parentId: '4',
-              code: 'PKG-BOTTLE',
-              name: 'Bottles',
-              description: 'Glass bottles',
-              postingClass: 'PKG-BOTTLE',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              createdBy: 'system',
-              updatedBy: 'system',
-            }
-          ]
-        },
-        {
-          id: '6',
-          companyId: '1',
-          code: 'FG',
-          name: 'Finished Goods',
-          description: 'Finished beer products',
-          postingClass: 'FG',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          createdBy: 'system',
-          updatedBy: 'system',
-        }
-      ];
-
-      const mockItems: Item[] = [
-        {
-          id: '1',
-          itemCode: 'MALT-PILSNER',
-          description: 'Pilsner Malt - German',
-          itemClassId: '2',
-          postingClassId: 'RM-GRAIN',
-          baseUOM: 'KG',
-          weightUOM: 'KG',
-          volumeUOM: 'L',
-          isActive: true,
-          isSerialized: false,
-          isLotTracked: true,
-          isPurchasable: true,
-          isSellable: false,
-          isManufactured: false,
-          defaultWarehouse: '1',
-          reorderPoint: 1000,
-          reorderQty: 5000,
-          standardCost: 2.50,
-          lastCost: 2.45,
-          averageCost: 2.48,
-          companyId: '1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          createdBy: 'system',
-          updatedBy: 'system',
-        },
-        {
-          id: '2',
-          itemCode: 'HOPS-HALLERTAU',
-          description: 'Hallertau Hops - Noble',
-          itemClassId: '3',
-          postingClassId: 'RM-HOPS',
-          baseUOM: 'KG',
-          weightUOM: 'KG',
-          volumeUOM: 'L',
-          isActive: true,
-          isSerialized: false,
-          isLotTracked: true,
-          isPurchasable: true,
-          isSellable: false,
-          isManufactured: false,
-          defaultWarehouse: '1',
-          reorderPoint: 50,
-          reorderQty: 200,
-          standardCost: 25.00,
-          lastCost: 24.50,
-          averageCost: 24.75,
-          companyId: '1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          createdBy: 'system',
-          updatedBy: 'system',
-        },
-        {
-          id: '3',
-          itemCode: 'BOTTLE-500ML',
-          description: 'Glass Bottle 500ml Brown',
-          itemClassId: '5',
-          postingClassId: 'PKG-BOTTLE',
-          baseUOM: 'EA',
-          weightUOM: 'KG',
-          volumeUOM: 'L',
-          isActive: true,
-          isSerialized: false,
-          isLotTracked: false,
-          isPurchasable: true,
-          isSellable: false,
-          isManufactured: false,
-          defaultWarehouse: '1',
-          reorderPoint: 10000,
-          reorderQty: 50000,
-          standardCost: 0.15,
-          lastCost: 0.14,
-          averageCost: 0.145,
-          companyId: '1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          createdBy: 'system',
-          updatedBy: 'system',
-        },
-        {
-          id: '4',
-          itemCode: 'BEER-PILSNER-500ML',
-          description: 'Pilsner Beer 500ml Bottle',
-          itemClassId: '6',
-          postingClassId: 'FG',
-          baseUOM: 'EA',
-          weightUOM: 'KG',
-          volumeUOM: 'L',
-          isActive: true,
-          isSerialized: false,
-          isLotTracked: true,
-          isPurchasable: false,
-          isSellable: true,
-          isManufactured: true,
-          defaultWarehouse: '3',
-          reorderPoint: 0,
-          reorderQty: 0,
-          standardCost: 1.50,
-          lastCost: 1.48,
-          averageCost: 1.49,
-          companyId: '1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          createdBy: 'system',
-          updatedBy: 'system',
-        }
-      ];
-      
       setUserContext(mockContext);
-      setAvailableCompanies(mockCompanies);
-      setAvailableCountries(mockCountries);
-      setCompanies(mockCompanies);
-      setCountries(mockCountries);
-      setBranches(mockBranches);
-      setWarehouses(mockWarehouses);
-      setItemClasses(mockItemClasses);
-      setItems(mockItems);
-      setCurrentCompany(mockCompanies[0]);
-      setCurrentCountry(mockCountries[0]);
-      setCurrentBranch(mockBranches[0]);
+      setAvailableCompanies(companies);
+      setAvailableCountries(countries);
+      setCompanies(companies);
+      setCountries(countries);
+      setBranches(branches);
+      setWarehouses(warehouses);
+      setItemClasses(itemClasses);
+      setItems(items);
+      setCurrentCompany(companies[0] || null);
+      setCurrentCountry(countries[0] || null);
+      setCurrentBranch(branches[0] || null);
       
     } catch (error) {
       setError('Failed to initialize application');
