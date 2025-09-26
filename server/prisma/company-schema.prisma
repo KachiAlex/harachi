@@ -1,0 +1,207 @@
+// Company-specific schema template
+// This will be used to generate schemas for each company
+
+// Inventory Management
+model Warehouse {
+  id        String   @id @default(uuid())
+  branchId  String
+  name      String
+  code      String
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  inventoryItems InventoryItem[]
+  transactions  Transaction[]
+
+  @@unique([branchId, code])
+  @@map("warehouses")
+}
+
+model UnitOfMeasure {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  inventoryItems InventoryItem[]
+
+  @@map("units_of_measure")
+}
+
+model InventoryItem {
+  id                String   @id @default(uuid())
+  warehouseId       String
+  unitOfMeasureId   String
+  name              String
+  code              String
+  description       String?
+  category          String?
+  reorderLevel      Decimal?
+  reorderQuantity   Decimal?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  warehouse       Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  unitOfMeasure  UnitOfMeasure   @relation(fields: [unitOfMeasureId], references: [id])
+  transactions    Transaction[]
+
+  @@unique([warehouseId, code])
+  @@map("inventory_items")
+}
+
+// Financial Management
+model ChartOfAccount {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  type        String   // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+  parentId    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  parent         ChartOfAccount?  @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children       ChartOfAccount[] @relation("AccountHierarchy")
+  financeEntries FinanceEntry[]
+
+  @@map("chart_of_accounts")
+}
+
+model FinanceEntry {
+  id                String   @id @default(uuid())
+  accountId         String
+  transactionId     String
+  debitAmount       Decimal  @default(0)
+  creditAmount      Decimal  @default(0)
+  description       String?
+  createdAt         DateTime @default(now())
+
+  // Relations
+  account     ChartOfAccount @relation(fields: [accountId], references: [id])
+  transaction Transaction     @relation(fields: [transactionId], references: [id])
+
+  @@map("finance_entries")
+}
+
+// Transaction Management
+model Transaction {
+  id          String   @id @default(uuid())
+  warehouseId String
+  itemId      String
+  type        String   // IN, OUT, TRANSFER, ADJUSTMENT
+  quantity    Decimal
+  unitPrice   Decimal?
+  totalAmount Decimal?
+  reference   String?  // PO number, SO number, etc.
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  warehouse      Warehouse       @relation(fields: [warehouseId], references: [id])
+  item           InventoryItem   @relation(fields: [itemId], references: [id])
+  financeEntries FinanceEntry[]
+
+  @@map("transactions")
+}
+
+// Vendor Management
+model Vendor {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  email       String?
+  phone       String?
+  address     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  purchaseOrders PurchaseOrder[]
+
+  @@map("vendors")
+}
+
+model PurchaseOrder {
+  id        String   @id @default(uuid())
+  vendorId  String
+  number    String   @unique
+  date      DateTime
+  status    String   // DRAFT, SENT, RECEIVED, CANCELLED
+  totalAmount Decimal?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  vendor Vendor @relation(fields: [vendorId], references: [id])
+
+  @@map("purchase_orders")
+}
+
+// Customer Management
+model Customer {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  email       String?
+  phone       String?
+  address     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  salesOrders SalesOrder[]
+
+  @@map("customers")
+}
+
+model SalesOrder {
+  id        String   @id @default(uuid())
+  customerId String
+  number    String   @unique
+  date      DateTime
+  status    String   // DRAFT, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
+  totalAmount Decimal?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  customer Customer @relation(fields: [customerId], references: [id])
+  invoices Invoice[]
+
+  @@map("sales_orders")
+}
+
+model Invoice {
+  id           String   @id @default(uuid())
+  salesOrderId String
+  number       String   @unique
+  date         DateTime
+  dueDate      DateTime?
+  status       String   // DRAFT, SENT, PAID, OVERDUE
+  totalAmount  Decimal
+  paidAmount   Decimal  @default(0)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  salesOrder SalesOrder @relation(fields: [salesOrderId], references: [id])
+
+  @@map("invoices")
+}

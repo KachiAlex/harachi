@@ -1,0 +1,143 @@
+// Harachi ERP Multi-Tenant Schema
+// Schema-per-company strategy for data isolation
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Global tables (shared across all tenants)
+model Harachi {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  companies Company[]
+
+  @@map("harachi")
+}
+
+model Company {
+  id          String   @id @default(uuid())
+  harachiId   String
+  name        String
+  code        String   @unique
+  schemaName  String   @unique // e.g., "company_bogo_hq"
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  harachi     Harachi  @relation(fields: [harachiId], references: [id], onDelete: Cascade)
+  countries   Country[]
+  users       User[]
+
+  @@map("companies")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  companyId String
+  email     String
+  password  String
+  firstName String
+  lastName  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  roles   UserRole[]
+
+  @@unique([companyId, email])
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  companyId   String
+  name        String
+  description String?
+  permissions Json     // Array of permission strings
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userRoles UserRole[]
+
+  @@unique([companyId, name])
+  @@map("roles")
+}
+
+model UserRole {
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model Country {
+  id        String   @id @default(uuid())
+  companyId String
+  name      String
+  code      String   // ISO country code
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  branches Branch[]
+
+  @@unique([companyId, code])
+  @@map("countries")
+}
+
+// Company-specific tables (will be created in company schemas)
+model Branch {
+  id        String   @id @default(uuid())
+  companyId String
+  countryId String
+  name      String
+  code      String
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, countryId, code])
+  @@map("branches")
+}
+
+// Audit trail
+model AuditLog {
+  id        String   @id @default(uuid())
+  companyId String
+  userId    String
+  action    String   // CREATE, UPDATE, DELETE
+  tableName String
+  recordId  String
+  oldValues Json?
+  newValues Json?
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
+}

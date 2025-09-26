@@ -1,28 +1,73 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() { return request.auth != null; }
-    function userProfile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)); }
-    function hasPermission(perm) { return isSignedIn() && userProfile().exists() && perm in userProfile().data.permissions; }
-    function isActiveUser() { return isSignedIn() && userProfile().exists() && userProfile().data.isActive == true; }
-
-    match /tenants/{id} { allow read: if isSignedIn(); allow write: if hasPermission('admin:tenants:write'); }
-    match /companies/{id} { allow read: if isSignedIn(); allow write: if hasPermission('admin:tenants:write'); }
-    match /countries/{id} { allow read: if isSignedIn(); allow write: if hasPermission('admin:tenants:write'); }
-    match /branches/{id} { allow read: if isSignedIn(); allow write: if hasPermission('admin:tenants:write'); }
-    match /warehouses/{id} { allow read: if isSignedIn(); allow write: if hasPermission('tenant:settings:write') || hasPermission('inventory:write'); }
-    match /itemClasses/{id} { allow read: if isSignedIn(); allow write: if hasPermission('inventory:write'); }
-    match /items/{id} { allow read: if isSignedIn(); allow write: if hasPermission('inventory:write'); }
-    match /roles/{id} { allow read: if isSignedIn(); allow write: if hasPermission('admin:tenants:write'); }
-    match /users/{uid} {
-      allow read: if isSignedIn() && (uid == request.auth.uid || hasPermission('admin:tenants:write'));
-      allow write: if isSignedIn() && ((uid == request.auth.uid && request.resource.data.keys().hasOnly(['email','displayName','tenantId','countryId','branchId','roleId','permissions','isActive','createdAt','updatedAt'])) || hasPermission('admin:tenants:write'));
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
     }
-    match /purchaseOrders/{id} { allow read: if hasPermission('procurement:read'); allow write: if hasPermission('procurement:write'); }
-    match /goodsReceipts/{id} { allow read: if hasPermission('procurement:read'); allow write: if hasPermission('procurement:write'); }
-    match /recipes/{id} { allow read: if hasPermission('production:read'); allow write: if hasPermission('production:write'); }
-    match /productionOrders/{id} { allow read: if hasPermission('production:read'); allow write: if hasPermission('production:write'); }
-    match /qcTests/{id} { allow read: if hasPermission('quality:read'); allow write: if hasPermission('quality:write'); }
-    match /{document=**} { allow read, write: if false; }
+    
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/roles/$(request.auth.uid + '_super_admin'));
+    }
+    
+    function isCompanyAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/roles/$(request.auth.uid + '_company_admin'));
+    }
+    
+    function isUserInCompany(companyId) {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
+    }
+    
+    // Global collections
+    match /companies/{companyId} {
+      allow read, write: if isSuperAdmin();
+      allow read: if isUserInCompany(companyId);
+      
+      // Company subcollections
+      match /countries/{countryId} {
+        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+      }
+      
+      match /branches/{branchId} {
+        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+      }
+      
+      match /users/{userId} {
+        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+      }
+      
+      match /inventory/{itemId} {
+        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+      }
+      
+      match /transactions/{transactionId} {
+        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+      }
+      
+      match /finance/{entryId} {
+        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+      }
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read, write: if isSuperAdmin();
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if isAuthenticated() && isUserInCompany(resource.data.companyId);
+      
+      // User roles subcollection
+      match /roles/{roleId} {
+        allow read, write: if isSuperAdmin();
+        allow read: if isAuthenticated() && request.auth.uid == userId;
+      }
+    }
+    
+    // Audit logs (read-only for admins)
+    match /audit_logs/{logId} {
+      allow read: if isSuperAdmin() || isCompanyAdmin();
+    }
   }
 }
