@@ -8,7 +8,7 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [counts, setCounts] = useState({ tenants: 0, countries: 0, branches: 0, companies: 0, warehouses: 0, users: 0, roles: 0 });
+  const [counts, setCounts] = useState({ tenants: 0, countries: 0, branches: 0, companies: 0, warehouses: 0, users: 0, roles: 0, licenses: 0 });
   const [datasets, setDatasets] = useState({
     tenants: [] as any[],
     countries: [] as any[],
@@ -17,6 +17,7 @@ const AdminDashboard: React.FC = () => {
     warehouses: [] as any[],
     users: [] as any[],
     roles: [] as any[],
+    licenses: [] as any[],
   });
 
   const load = useCallback(async () => {
@@ -32,7 +33,11 @@ const AdminDashboard: React.FC = () => {
         FirestoreService.getUsers(),
         FirestoreService.getRoles(),
       ]);
-      setDatasets({ tenants, countries, branches, companies, warehouses, users, roles });
+      
+      // Count total licenses across all companies
+      const licenseCount = await FirestoreService.getTotalLicenseCount();
+      
+      setDatasets({ tenants, countries, branches, companies, warehouses, users, roles, licenses: [] });
       setCounts({
         tenants: tenants.length,
         countries: countries.length,
@@ -41,6 +46,7 @@ const AdminDashboard: React.FC = () => {
         warehouses: warehouses.length,
         users: users.length,
         roles: roles.length,
+        licenses: licenseCount,
       });
     } catch (e: any) {
       const msg = e?.message || 'Failed to load admin dashboard';
@@ -75,6 +81,7 @@ const AdminDashboard: React.FC = () => {
       warehouses: datasets.warehouses.filter(matches).length,
       users: datasets.users.filter(matches).length,
       roles: datasets.roles.filter(matches).length,
+      licenses: counts.licenses, // License count doesn't change with search
     };
   }, [search, datasets, counts]);
 
@@ -99,7 +106,7 @@ const AdminDashboard: React.FC = () => {
         <div className="mb-4 text-sm text-red-600">{error}</div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4">
         <div className="bg-white border rounded-lg p-4">
           <div className="text-sm text-gray-500">Tenants</div>
           <div className="text-2xl font-semibold">{filteredCounts.tenants}</div>
@@ -127,6 +134,10 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white border rounded-lg p-4">
           <div className="text-sm text-gray-500">Roles</div>
           <div className="text-2xl font-semibold">{filteredCounts.roles}</div>
+        </div>
+        <div className="bg-white border rounded-lg p-4">
+          <div className="text-sm text-gray-500">Licenses</div>
+          <div className="text-2xl font-semibold">{filteredCounts.licenses}</div>
         </div>
       </div>
     </div>

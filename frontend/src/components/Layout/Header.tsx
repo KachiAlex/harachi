@@ -25,7 +25,7 @@ const Header: React.FC = () => {
                 <p className="font-medium text-gray-900">
                   {user.firstName} {user.lastName}
                 </p>
-                <p className="text-gray-500">{user.company.name}</p>
+                <p className="text-gray-500">{user.company?.name || 'No Company'}</p>
               </div>
             </div>
 

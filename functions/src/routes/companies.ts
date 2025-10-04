@@ -4,6 +4,21 @@ import * as functions from 'firebase-functions';
 import jwt from 'jsonwebtoken';
 import Joi from 'joi';
 
+// Extend Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        companyId?: string;
+        roles: string[];
+        [key: string]: any;
+      };
+    }
+  }
+}
+
 const router = express.Router();
 const db = admin.firestore();
 
@@ -37,7 +52,7 @@ const companySchema = Joi.object({
 router.get('/', verifyToken, async (req, res) => {
   try {
     // Check if user has Super Admin role
-    if (!req.user.roles.includes('Super Admin')) {
+    if (!req.user?.roles?.includes('Super Admin')) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -82,7 +97,7 @@ router.get('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
 
     // Check if user has access to this company
-    if (req.user.companyId !== id && !req.user.roles.includes('Super Admin')) {
+    if (req.user?.companyId !== id && !req.user?.roles?.includes('Super Admin')) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -134,7 +149,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 router.post('/', verifyToken, async (req, res) => {
   try {
     // Check if user has Super Admin role
-    if (!req.user.roles.includes('Super Admin')) {
+    if (!req.user?.roles?.includes('Super Admin')) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -188,7 +203,7 @@ router.put('/:id', verifyToken, async (req, res) => {
     const { id } = req.params;
 
     // Check if user has access to this company
-    if (req.user.companyId !== id && !req.user.roles.includes('Super Admin')) {
+    if (req.user?.companyId !== id && !req.user?.roles?.includes('Super Admin')) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -223,7 +238,7 @@ router.put('/:id', verifyToken, async (req, res) => {
 router.delete('/:id', verifyToken, async (req, res) => {
   try {
     // Check if user has Super Admin role
-    if (!req.user.roles.includes('Super Admin')) {
+    if (!req.user?.roles?.includes('Super Admin')) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -257,7 +272,7 @@ router.get('/:id/countries', verifyToken, async (req, res) => {
     const { id } = req.params;
 
     // Check if user has access to this company
-    if (req.user.companyId !== id && !req.user.roles.includes('Super Admin')) {
+    if (req.user?.companyId !== id && !req.user?.roles?.includes('Super Admin')) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -285,7 +300,7 @@ router.post('/:id/countries', verifyToken, async (req, res) => {
     const { id } = req.params;
 
     // Check if user has access to this company
-    if (req.user.companyId !== id && !req.user.roles.includes('Super Admin')) {
+    if (req.user?.companyId !== id && !req.user?.roles?.includes('Super Admin')) {
       return res.status(403).json({ error: 'Access denied' });
     }
 

@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Copy, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { apiService } from '../services/api';
+import toast from 'react-hot-toast';
 import { 
   Building2, 
   Users, 
@@ -8,11 +11,44 @@ import {
   TrendingUp,
   DollarSign,
   ShoppingCart,
-  ShoppingBag
+  ShoppingBag,
+  Key
 } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
+  const [license, setLicense] = useState<any | null>(null);
+  const [licenseLoading, setLicenseLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const loadLicense = async () => {
+      if (!user?.company?.id) return;
+      
+      setLicenseLoading(true);
+      try {
+        const activeLicense = await apiService.getActiveLicense(user.company.id);
+        setLicense(activeLicense);
+      } catch (error) {
+        console.error('Failed to load license:', error);
+      } finally {
+        setLicenseLoading(false);
+      }
+    };
+
+    loadLicense();
+  }, [user?.company?.id]);
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast.success('License code copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error('Failed to copy to clipboard');
+    }
+  };
 
   if (!user) return null;
 
@@ -91,7 +127,7 @@ const Dashboard: React.FC = () => {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600">
-          Welcome back, {user.firstName}! Here's what's happening with your {user.company.name} account.
+          Welcome back, {user.firstName}! Here's what's happening with your {user.company?.name || 'company'} account.
         </p>
       </div>
 
@@ -114,6 +150,75 @@ const Dashboard: React.FC = () => {
           );
         })}
       </div>
+
+      {/* License Information */}
+      {isCompanyAdmin && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">License Information</h2>
+          <div className="card">
+            {licenseLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                <span className="ml-2 text-gray-600">Loading license...</span>
+              </div>
+            ) : license ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <Key className="h-6 w-6 text-green-600" />
+                    <h3 className="text-lg font-semibold text-green-800">Active License</h3>
+                  </div>
+                  <span className="text-xs px-3 py-1 rounded-full bg-green-100 text-green-800 font-medium">Active</span>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-green-700 mb-2">License Code</label>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-1 bg-white border rounded-lg p-3 font-mono text-sm font-semibold text-gray-900 break-all">
+                        {license.code}
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(license.code)}
+                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-colors ${
+                          copied 
+                            ? 'bg-green-100 text-green-700 border border-green-300' 
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                      >
+                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        <span className="text-sm">{copied ? 'Copied!' : 'Copy'}</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-green-700 font-medium">Expires:</span>
+                      <span className="ml-1 text-gray-900">{new Date(license.expiresAt).toLocaleDateString()}</span>
+                    </div>
+                    <div>
+                      <span className="text-green-700 font-medium">Duration:</span>
+                      <span className="ml-1 text-gray-900">{license.years} year(s)</span>
+                    </div>
+                    <div>
+                      <span className="text-green-700 font-medium">Issued:</span>
+                      <span className="ml-1 text-gray-900">{new Date(license.issuedAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Key className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No Active License</h3>
+                <p className="text-gray-600 mb-4">No active license found for your company.</p>
+                <a href="/company/license" className="btn-primary">Manage License</a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div>

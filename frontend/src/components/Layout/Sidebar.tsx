@@ -28,6 +28,7 @@ const Sidebar: React.FC = () => {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['*'] },
+    { name: 'Branch Dashboard', href: '/branch', icon: LayoutDashboard, roles: ['Branch Admin'] },
     
     // Super Admin routes
     { name: 'Companies', href: '/admin/companies', icon: Building2, roles: ['Super Admin'] },
@@ -36,8 +37,12 @@ const Sidebar: React.FC = () => {
     // Company Admin routes
     { name: 'Setup Wizard', href: '/company/setup', icon: Settings, roles: ['Company Admin'] },
     { name: 'Countries', href: '/company/countries', icon: MapPin, roles: ['Company Admin'] },
-    { name: 'Branches', href: '/company/branches', icon: Building2, roles: ['Company Admin'] },
+    { name: 'Branches Upload', href: '/company/branches/upload', icon: Building2, roles: ['Company Admin'] },
     { name: 'Users', href: '/company/users', icon: Users, roles: ['Company Admin'] },
+    { name: 'Licensing', href: '/company/licensing', icon: Settings, roles: ['Company Admin', 'Super Admin'] },
+    { name: 'UoM', href: '/company/uoms', icon: Settings, roles: ['Company Admin'] },
+    { name: 'Customers Upload', href: '/company/customers/upload', icon: Users, roles: ['Company Admin'] },
+    { name: 'Vendors Upload', href: '/company/vendors/upload', icon: Users, roles: ['Company Admin'] },
     
     // Branch Admin & User routes
     { name: 'Inventory', href: '/branch/inventory', icon: Package, roles: ['Branch Admin', 'Inventory Officer', 'Auditor'] },

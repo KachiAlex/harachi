@@ -19,7 +19,7 @@ Multi-tenant ERP system built with NestJS, PostgreSQL, and Prisma.
 ### Development Setup
 
 1. **Install dependencies**
-   ```bash
+```bash
    npm install
    ```
 
@@ -30,7 +30,7 @@ Multi-tenant ERP system built with NestJS, PostgreSQL, and Prisma.
    ```
 
 3. **Database setup**
-   ```bash
+```bash
    # Generate Prisma client
    npm run db:generate
    

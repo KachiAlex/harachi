@@ -1,26 +1,81 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Building2, Users, MapPin, Edit, Trash2 } from 'lucide-react';
+import { Plus, Building2, Users, MapPin, Edit, Trash2, Copy, Check, Key, RotateCcw, X, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { Company } from '../../types';
 import { apiService } from '../../services/api';
+import toast from 'react-hot-toast';
 
 const Companies: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [companyLicenses, setCompanyLicenses] = useState<{[key: string]: any}>({});
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showRenewModal, setShowRenewModal] = useState(false);
+  const [showLicenseModal, setShowLicenseModal] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<any>(null);
+  const [showCredentials, setShowCredentials] = useState<{[key: string]: boolean}>({});
+  const [licenseTypes, setLicenseTypes] = useState<any[]>([]);
   const [newCompany, setNewCompany] = useState({
     name: '',
     code: '',
+    adminUsername: '',
+    adminPassword: '',
+  });
+  const [updateCompany, setUpdateCompany] = useState({
+    id: '',
+    name: '',
+    code: '',
+    adminUsername: '',
+    adminPassword: '',
   });
 
   useEffect(() => {
     loadCompanies();
+    setLicenseTypes(apiService.getLicenseTypes());
   }, []);
 
   const loadCompanies = async () => {
     try {
       // For demo purposes, using a mock harachiId
       const data = await apiService.getCompanies('harachi-001');
-      setCompanies(data);
+      
+      // Load admin credentials for each company
+      const companiesWithCredentials = await Promise.all(
+        data.map(async (company) => {
+          try {
+            // Get admin user for this company
+            const adminUser = await apiService.getCompanyAdmin(company.id);
+            return {
+              ...company,
+              adminUsername: (adminUser as any)?.username || 'admin',
+              adminPassword: (adminUser as any)?.password || '••••••••'
+            };
+          } catch (error) {
+            console.error(`Failed to load admin for company ${company.id}:`, error);
+            return {
+              ...company,
+              adminUsername: 'admin',
+              adminPassword: '••••••••'
+            };
+          }
+        })
+      );
+      
+      setCompanies(companiesWithCredentials);
+      
+      // Load license information for each company
+      const licenses: {[key: string]: any} = {};
+      for (const company of companiesWithCredentials) {
+        try {
+          const license = await apiService.getActiveLicense(company.id);
+          if (license) {
+            licenses[company.id] = license;
+          }
+        } catch (error) {
+          console.error(`Failed to load license for company ${company.id}:`, error);
+        }
+      }
+      setCompanyLicenses(licenses);
     } catch (error) {
       console.error('Failed to load companies:', error);
     } finally {
@@ -31,16 +86,118 @@ const Companies: React.FC = () => {
   const handleCreateCompany = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiService.createCompany({
-        harachiId: 'harachi-001',
-        ...newCompany,
-      });
+      await apiService.createCompany({ ...newCompany });
       setShowCreateModal(false);
-      setNewCompany({ name: '', code: '' });
+      setNewCompany({ name: '', code: '', adminUsername: '', adminPassword: '' });
       loadCompanies();
+      toast.success('Company created successfully!');
     } catch (error) {
       console.error('Failed to create company:', error);
+      toast.error('Failed to create company');
     }
+  };
+
+  const handleUpdateCompany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await apiService.updateCompanyWithAdmin(updateCompany.id, { ...updateCompany });
+      setShowUpdateModal(false);
+      setUpdateCompany({ id: '', name: '', code: '', adminUsername: '', adminPassword: '' });
+      loadCompanies();
+      toast.success('Company updated successfully!');
+    } catch (error) {
+      console.error('Failed to update company:', error);
+      toast.error('Failed to update company');
+    }
+  };
+
+  const openUpdateModal = (company: Company) => {
+    setUpdateCompany({
+      id: company.id,
+      name: company.name,
+      code: company.code,
+      adminUsername: company.adminUsername || '',
+      adminPassword: '', // Don't show existing password for security
+    });
+    setShowUpdateModal(true);
+  };
+
+  const handleGenerateLicense = async (companyId: string) => {
+    setSelectedCompany({ id: companyId });
+    setShowLicenseModal(true);
+  };
+
+  const handleIssueLicense = async (licenseTypeId: string) => {
+    if (!selectedCompany) return;
+    
+    try {
+      const license = await apiService.generateLicense(selectedCompany.id, licenseTypeId);
+      // Update the license for this company
+      setCompanyLicenses(prev => ({
+        ...prev,
+        [selectedCompany.id]: license
+      }));
+      setShowLicenseModal(false);
+      toast.success('License issued successfully!');
+    } catch (err) {
+      console.error('Failed to generate license:', err);
+      toast.error('Failed to generate license');
+    }
+  };
+
+  const handleRevokeLicense = async (companyId: string, licenseId: string) => {
+    try {
+      await apiService.revokeLicense(companyId, licenseId);
+      // Remove license from state
+      setCompanyLicenses(prev => {
+        const updated = { ...prev };
+        delete updated[companyId];
+        return updated;
+      });
+      toast.success('License revoked successfully!');
+    } catch (err) {
+      console.error('Failed to revoke license:', err);
+      toast.error('Failed to revoke license');
+    }
+  };
+
+  const handleRenewLicense = async (companyId: string, licenseId: string, years: number = 1) => {
+    try {
+      const result = await apiService.renewLicense(companyId, licenseId, years);
+      // Update the license in state
+      setCompanyLicenses(prev => ({
+        ...prev,
+        [companyId]: {
+          ...prev[companyId],
+          expiresAt: result.newExpiresAt
+        }
+      }));
+      toast.success('License renewed successfully!');
+      setShowRenewModal(false);
+    } catch (err) {
+      console.error('Failed to renew license:', err);
+      toast.error('Failed to renew license');
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Copied to clipboard!');
+    } catch (err) {
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
+  const toggleCredentials = (companyId: string) => {
+    setShowCredentials(prev => ({
+      ...prev,
+      [companyId]: !prev[companyId]
+    }));
+  };
+
+  const getPortalLink = (companyCode: string) => {
+    return apiService.generatePortalLink(companyCode);
   };
 
   if (loading) {
@@ -69,88 +226,265 @@ const Companies: React.FC = () => {
 
       {/* Companies Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {companies.map((company) => (
-          <div key={company.id} className="card hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <Building2 className="h-8 w-8 text-primary-600" />
-                <div className="ml-3">
-                  <h3 className="text-lg font-semibold text-gray-900">{company.name}</h3>
-                  <p className="text-sm text-gray-500">Code: {company.code}</p>
+        {companies.map((company) => {
+          const license = companyLicenses[company.id];
+          return (
+            <div key={company.id} className="card hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <Building2 className="h-8 w-8 text-primary-600" />
+                  <div className="ml-3">
+                    <h3 className="text-lg font-semibold text-gray-900">{company.name}</h3>
+                    <p className="text-sm text-gray-500">Code: {company.code}</p>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => openUpdateModal(company)}
+                    className="text-gray-400 hover:text-gray-600"
+                    title="Edit Company"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button className="text-gray-400 hover:text-red-600">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
-              <div className="flex space-x-2">
-                <button className="text-gray-400 hover:text-gray-600">
-                  <Edit className="h-4 w-4" />
-                </button>
-                <button className="text-gray-400 hover:text-red-600">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center text-sm text-gray-600">
-                <Users className="h-4 w-4 mr-2" />
-                <span>{company.users?.length || 0} users</span>
+              <div className="space-y-2">
+                <div className="flex items-center text-sm text-gray-600">
+                  <Users className="h-4 w-4 mr-2" />
+                  <span>{company.users?.length || 0} users</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  <span>{company.countries?.length || 0} countries</span>
+                </div>
               </div>
-              <div className="flex items-center text-sm text-gray-600">
-                <MapPin className="h-4 w-4 mr-2" />
-                <span>{company.countries?.length || 0} countries</span>
-              </div>
-            </div>
 
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex justify-between items-center">
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  company.isActive 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {company.isActive ? 'Active' : 'Inactive'}
-                </span>
-                <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                  View Details
-                </button>
+              {/* Portal Access */}
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      <ExternalLink className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">Portal Access</span>
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Ready
+                      </span>
+                    </div>
+                    <a
+                      href={getPortalLink(company.code)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                    >
+                      Open Portal →
+                    </a>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex-1 bg-white border rounded p-2 font-mono text-xs text-gray-900 break-all">
+                        {getPortalLink(company.code)}
+                      </div>
+                      <button
+                        onClick={() => copyToClipboard(getPortalLink(company.code))}
+                        className="flex items-center space-x-1 px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                      >
+                        <Copy className="h-3 w-3" />
+                        <span>Copy</span>
+                      </button>
+                    </div>
+                    <p className="text-xs text-blue-600">
+                      💡 Portal link automatically generated based on company code
+                    </p>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-blue-700">Admin Credentials:</span>
+                      <button
+                        onClick={() => toggleCredentials(company.id)}
+                        className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 text-xs"
+                      >
+                        {showCredentials[company.id] ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                        <span>{showCredentials[company.id] ? 'Hide' : 'Show'}</span>
+                      </button>
+                    </div>
+                    
+                    {showCredentials[company.id] && (
+                      <div className="bg-white border rounded p-2 space-y-1">
+                        <div className="text-xs">
+                          <span className="font-medium text-gray-700">Username:</span>
+                          <span className="ml-1 font-mono text-gray-900">{company.adminUsername || 'admin'}</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-medium text-gray-700">Password:</span>
+                          <span className="ml-1 font-mono text-gray-900">{company.adminPassword || '••••••••'}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* License Information */}
+              {license && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-2">
+                        <Key className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-800">Active License</span>
+                      </div>
+                      <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-800">Active</span>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex-1 bg-white border rounded p-2 font-mono text-xs font-semibold text-gray-900 break-all">
+                          {license.code}
+                        </div>
+                        <button
+                          onClick={() => copyToClipboard(license.code)}
+                          className="flex items-center space-x-1 px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                        >
+                          <Copy className="h-3 w-3" />
+                          <span>Copy</span>
+                        </button>
+                      </div>
+                      
+                      <div className="text-xs text-green-700">
+                        <div>Expires: {new Date(license.expiresAt).toLocaleDateString()}</div>
+                        <div>Duration: {license.totalDuration || license.years * 365} days</div>
+                        {license.isTrial && (
+                          <div className="text-green-600 font-medium">Trial License</div>
+                        )}
+                        <div>Type: {license.licenseType?.name || 'Standard'}</div>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedCompany({ id: company.id, licenseId: license.id });
+                            setShowRenewModal(true);
+                          }}
+                          className="flex items-center space-x-1 px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          <span>Renew</span>
+                        </button>
+                        <button
+                          onClick={() => handleRevokeLicense(company.id, license.id)}
+                          className="flex items-center space-x-1 px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                        >
+                          <X className="h-3 w-3" />
+                          <span>Revoke</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex justify-between items-center">
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    company.isActive 
+                      ? 'bg-green-100 text-green-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {company.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                  <div className="space-x-3">
+                    {!license && (
+                      <button
+                        onClick={() => handleGenerateLicense(company.id)}
+                        className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                      >
+                        Issue License
+                      </button>
+                    )}
+                    <a href={`/admin/companies/${company.id}`} className="text-gray-600 hover:text-gray-800 text-sm font-medium">
+                      View Details
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Create Company Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Create New Company</h3>
             <form onSubmit={handleCreateCompany} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  value={newCompany.name}
-                  onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })}
-                  className="input-field"
-                  placeholder="Enter company name"
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    value={newCompany.name}
+                    onChange={(e) => setNewCompany({ ...newCompany, name: e.target.value })}
+                    className="input-field"
+                    placeholder="Enter company name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Company Code
+                  </label>
+                  <input
+                    type="text"
+                    value={newCompany.code}
+                    onChange={(e) => setNewCompany({ ...newCompany, code: e.target.value })}
+                    className="input-field"
+                    placeholder="Enter company code"
+                    required
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Company Code
-                </label>
-                <input
-                  type="text"
-                  value={newCompany.code}
-                  onChange={(e) => setNewCompany({ ...newCompany, code: e.target.value })}
-                  className="input-field"
-                  placeholder="Enter company code"
-                  required
-                />
+              
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Admin Account</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Admin Username
+                    </label>
+                    <input
+                      type="text"
+                      value={newCompany.adminUsername}
+                      onChange={(e) => setNewCompany({ ...newCompany, adminUsername: e.target.value })}
+                      className="input-field"
+                      placeholder="Enter admin username"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Admin Password
+                    </label>
+                    <input
+                      type="password"
+                      value={newCompany.adminPassword}
+                      onChange={(e) => setNewCompany({ ...newCompany, adminPassword: e.target.value })}
+                      className="input-field"
+                      placeholder="Enter admin password"
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-end space-x-3">
+
+              <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
@@ -163,6 +497,184 @@ const Companies: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Update Company Modal */}
+      {showUpdateModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Update Company</h3>
+            <form onSubmit={handleUpdateCompany} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Company Name
+                  </label>
+                  <input
+                    type="text"
+                    value={updateCompany.name}
+                    onChange={(e) => setUpdateCompany({ ...updateCompany, name: e.target.value })}
+                    className="input-field"
+                    placeholder="Enter company name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Company Code
+                  </label>
+                  <input
+                    type="text"
+                    value={updateCompany.code}
+                    onChange={(e) => setUpdateCompany({ ...updateCompany, code: e.target.value })}
+                    className="input-field"
+                    placeholder="Enter company code"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Admin Account</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Admin Username
+                    </label>
+                    <input
+                      type="text"
+                      value={updateCompany.adminUsername}
+                      onChange={(e) => setUpdateCompany({ ...updateCompany, adminUsername: e.target.value })}
+                      className="input-field"
+                      placeholder="Enter admin username"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      New Password (leave blank to keep current)
+                    </label>
+                    <input
+                      type="password"
+                      value={updateCompany.adminPassword}
+                      onChange={(e) => setUpdateCompany({ ...updateCompany, adminPassword: e.target.value })}
+                      className="input-field"
+                      placeholder="Enter new password (optional)"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowUpdateModal(false)}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Update Company
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* License Selection Modal */}
+      {showLicenseModal && selectedCompany && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Issue License</h3>
+            <p className="text-sm text-gray-600 mb-6">Select a license type to issue for this company.</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {licenseTypes.map((licenseType) => (
+                <div
+                  key={licenseType.id}
+                  onClick={() => handleIssueLicense(licenseType.id)}
+                  className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-gray-900">{licenseType.name}</h4>
+                    {licenseType.isTrial && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Trial
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">{licenseType.description}</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-500">
+                      Duration: {licenseType.duration} days
+                    </span>
+                    <span className="text-lg font-semibold text-blue-600">
+                      {licenseType.price === 0 ? 'Free' : `$${licenseType.price}`}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-6 border-t">
+              <button
+                onClick={() => setShowLicenseModal(false)}
+                className="btn-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Renew License Modal */}
+      {showRenewModal && selectedCompany && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Renew License</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Renewal Duration
+                </label>
+                <select className="input-field" defaultValue="1">
+                  <option value="1">1 Year</option>
+                  <option value="2">2 Years</option>
+                  <option value="3">3 Years</option>
+                  <option value="5">5 Years</option>
+                </select>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  This will extend the current license expiration date by the selected duration.
+                </p>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4 border-t">
+                <button
+                  onClick={() => setShowRenewModal(false)}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const selectElement = document.querySelector('select') as HTMLSelectElement;
+                    const years = parseInt(selectElement.value);
+                    handleRenewLicense(selectedCompany.id, selectedCompany.licenseId, years);
+                  }}
+                  className="btn-primary"
+                >
+                  Renew License
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -6,14 +6,17 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    function isSuperAdmin() {
-      return isAuthenticated() && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)/roles/$(request.auth.uid + '_super_admin'));
+    function userHasRole(role) {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny([role]);
     }
-    
+
+    function isSuperAdmin() {
+      return userHasRole('Super Admin');
+    }
+
     function isCompanyAdmin() {
-      return isAuthenticated() && 
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)/roles/$(request.auth.uid + '_company_admin'));
+      return userHasRole('Company Admin');
     }
     
     function isUserInCompany(companyId) {
@@ -40,7 +43,8 @@ service cloud.firestore {
       }
       
       match /inventory/{itemId} {
-        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+        allow read: if isUserInCompany(companyId);
+        allow write: if isSuperAdmin() || isCompanyAdmin() || userHasRole('Branch Admin') && isUserInCompany(companyId);
       }
       
       match /transactions/{transactionId} {
@@ -65,6 +69,18 @@ service cloud.firestore {
       }
     }
     
+    // Company licenses (readable by Super Admin and Company Admins of that company)
+    match /companies/{companyId}/licenses/{licenseId} {
+      allow read: if isSuperAdmin() || isUserInCompany(companyId);
+      allow write: if isSuperAdmin();
+    }
+
+  // Units of Measure
+  match /companies/{companyId}/uoms/{uomId} {
+    allow read: if isUserInCompany(companyId);
+    allow write: if isSuperAdmin() || isCompanyAdmin();
+  }
+
     // Audit logs (read-only for admins)
     match /audit_logs/{logId} {
       allow read: if isSuperAdmin() || isCompanyAdmin();

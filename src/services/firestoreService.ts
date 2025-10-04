@@ -251,4 +251,26 @@ export class FirestoreService {
     const ref = doc(db, 'users', id);
     await deleteDoc(ref);
   }
+
+  // Licenses
+  static async getTotalLicenseCount(): Promise<number> {
+    try {
+      // Get all companies first
+      const companiesSnapshot = await getDocs(collection(db, 'companies'));
+      let totalLicenses = 0;
+      
+      // Count licenses for each company
+      for (const companyDoc of companiesSnapshot.docs) {
+        const licensesSnapshot = await getDocs(
+          collection(db, `companies/${companyDoc.id}/licenses`)
+        );
+        totalLicenses += licensesSnapshot.size;
+      }
+      
+      return totalLicenses;
+    } catch (error) {
+      console.error('Error counting licenses:', error);
+      return 0;
+    }
+  }
 }

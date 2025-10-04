@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { UserContext, Company, Country, Branch, Warehouse, Item, ItemClass } from '../types';
 import { FirestoreService } from '../services/firestoreService';
+import { getAuth } from 'firebase/auth';
 
 interface AppState {
   // Context Management
@@ -117,10 +118,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       setLoading(true);
       setError(null);
       
-      // TODO: API call to switch tenant context
-      // const response = await api.put('/context', { tenant_id: tenantId });
-      
-      // Mock response for now
       const mockContext: UserContext = {
         tenantId: tenantId,
         tenantName: tenantId === '1' ? 'Bogo Food & Beverage' : 'Other Company',
@@ -136,9 +133,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       };
       
       setUserContext(mockContext);
-      
-      // Load available countries for new tenant
-      // await loadCountriesForTenant(tenantId);
       
     } catch (error) {
       setError('Failed to switch tenant');
@@ -162,27 +156,18 @@ export const useAppStore = create<AppState>((set, get) => ({
         throw new Error('Country not found');
       }
       
-      // TODO: API call to switch country context
-      // const response = await api.put('/context', { 
-      //   tenant_id: userContext.tenantId,
-      //   country_id: countryId 
-      // });
-      
       const updatedContext: UserContext = {
         ...userContext,
         countryId: country.id,
         countryName: country.name,
-        countryCode: country.countryCode,
-        currencyCode: country.currencyCode,
+        countryCode: (country as any).countryCode,
+        currencyCode: (country as any).currencyCode,
         branchId: undefined, // Reset branch when switching country
         branchName: undefined,
         defaultWarehouseId: undefined,
       };
       
       setUserContext(updatedContext);
-      
-      // Load branches for new country
-      // await loadBranchesForCountry(countryId);
       
     } catch (error) {
       setError('Failed to switch country');
@@ -206,7 +191,6 @@ export const useAppStore = create<AppState>((set, get) => ({
         throw new Error('Branch not found');
       }
       
-      // TODO: API call to switch branch context
       const updatedContext: UserContext = {
         ...userContext,
         branchId: branch.id,
@@ -216,9 +200,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       
       setUserContext(updatedContext);
       
-      // Load warehouses for new branch
-      // await loadWarehousesForBranch(branchId);
-      
     } catch (error) {
       setError('Failed to switch branch');
       console.error('Error switching branch:', error);
@@ -227,60 +208,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
   
-  // Initialize application
+  // Initialize application (no mock data, wait for auth; real loads to be implemented)
   initializeApp: async () => {
-    const { setLoading, setError, setUserContext, setAvailableCompanies, setAvailableCountries, setCompanies, setCountries, setBranches, setWarehouses, setItemClasses, setItems, setCurrentCompany, setCurrentCountry, setCurrentBranch } = get();
-    
+    const { setLoading, setError } = get();
     try {
       setLoading(true);
       setError(null);
-      
-      // Load data from Firestore
-      const [companies, countries, branches, warehouses, itemClasses, items] = await Promise.all([
-        FirestoreService.getCompanies(),
-        FirestoreService.getCountries(),
-        FirestoreService.getBranches(),
-        FirestoreService.getWarehouses(),
-        FirestoreService.getItemClassesByCompany('harachi-demo'),
-        FirestoreService.getItemsByCompany('harachi-demo')
-      ]);
-      
-      // Mock user context for now (will be replaced with real auth)
-      const mockContext: UserContext = {
-        tenantId: 'harachi-demo',
-        tenantName: 'Harachi Demo Tenant',
-        countryId: countries[0]?.id,
-        countryName: countries[0]?.name,
-        countryCode: countries[0]?.countryCode,
-        currencyCode: countries[0]?.currencyCode,
-        branchId: branches[0]?.id,
-        branchName: branches[0]?.name,
-        defaultWarehouseId: warehouses[0]?.id,
-        permissions: [
-          'admin:tenants:read', 'admin:tenants:write',
-          'tenant:settings:read', 'tenant:settings:write',
-          'inventory:read', 'inventory:write',
-          'production:read', 'production:write',
-          'quality:read', 'quality:write',
-          'procurement:read', 'procurement:write',
-          'reports:read', 'global:read'
-        ],
-        businessDate: get().businessDate,
-      };
-      
-      setUserContext(mockContext);
-      setAvailableCompanies(companies);
-      setAvailableCountries(countries);
-      setCompanies(companies);
-      setCountries(countries);
-      setBranches(branches);
-      setWarehouses(warehouses);
-      setItemClasses(itemClasses);
-      setItems(items);
-      setCurrentCompany(companies[0] || null);
-      setCurrentCountry(countries[0] || null);
-      setCurrentBranch(branches[0] || null);
-      
+      const auth = getAuth();
+      if (!auth.currentUser) {
+        setError('User not authenticated yet');
+        return;
+      }
+      // TODO: implement company-scoped loads here once endpoints/collections are finalized
     } catch (error) {
       setError('Failed to initialize application');
       console.error('Error initializing app:', error);
