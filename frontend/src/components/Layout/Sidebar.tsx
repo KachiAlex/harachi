@@ -10,7 +10,11 @@ import {
   ShoppingBag, 
   DollarSign,
   BarChart3,
-  Settings
+  Settings,
+  Box,
+  Layers,
+  GitBranch,
+  Ruler
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -40,12 +44,20 @@ const Sidebar: React.FC = () => {
     { name: 'Customers Upload', href: '/company/customers/upload', icon: Users, roles: ['Company Admin'] },
     { name: 'Vendors Upload', href: '/company/vendors/upload', icon: Users, roles: ['Company Admin'] },
     
-    // Branch Admin & User routes
-    { name: 'Inventory', href: '/branch/inventory', icon: Package, roles: ['Branch Admin', 'Inventory Officer', 'Auditor'] },
-    { name: 'Sales', href: '/branch/sales', icon: ShoppingCart, roles: ['Branch Admin', 'Auditor'] },
-    { name: 'Purchases', href: '/branch/purchases', icon: ShoppingBag, roles: ['Branch Admin', 'Inventory Officer', 'Auditor'] },
-    { name: 'Finance', href: '/branch/finance', icon: DollarSign, roles: ['Branch Admin', 'Accountant', 'Auditor'] },
-    { name: 'Reports', href: '/branch/reports', icon: BarChart3, roles: ['Branch Admin', 'Accountant', 'Auditor'] },
+    // Branch Admin & User routes - Inventory Management
+    { name: 'Inventory', href: '/branch/inventory', icon: Package, roles: ['Branch Admin', 'Branch Manager', 'Inventory Officer', 'Company Admin', 'Auditor'] },
+    { name: 'Item Master', href: '/branch/item-master', icon: Box, roles: ['Branch Admin', 'Branch Manager', 'Inventory Officer', 'Company Admin', 'Auditor'] },
+    { name: 'Stock Management', href: '/branch/stock', icon: Layers, roles: ['Branch Admin', 'Branch Manager', 'Inventory Officer', 'Company Admin', 'Auditor'] },
+    { name: 'Batch Tracking', href: '/branch/batch-tracking', icon: GitBranch, roles: ['Branch Admin', 'Branch Manager', 'Inventory Officer', 'Company Admin', 'Auditor'] },
+    { name: 'Units of Measure', href: '/branch/uoms', icon: Ruler, roles: ['Branch Admin', 'Branch Manager', 'Company Admin'] },
+    
+    // Sales & Purchases
+    { name: 'Sales', href: '/branch/sales', icon: ShoppingCart, roles: ['Branch Admin', 'Branch Manager', 'Company Admin', 'Auditor'] },
+    { name: 'Purchases', href: '/branch/purchases', icon: ShoppingBag, roles: ['Branch Admin', 'Branch Manager', 'Inventory Officer', 'Company Admin', 'Auditor'] },
+    
+    // Finance & Reports
+    { name: 'Finance', href: '/branch/finance', icon: DollarSign, roles: ['Branch Admin', 'Branch Manager', 'Accountant', 'Company Admin', 'Auditor'] },
+    { name: 'Inventory Reports', href: '/branch/inventory-reports', icon: BarChart3, roles: ['Branch Admin', 'Branch Manager', 'Accountant', 'Company Admin', 'Auditor'] },
   ];
 
   const canAccess = (requiredRoles: string[]) => {

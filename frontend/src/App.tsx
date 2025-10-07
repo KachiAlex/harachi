@@ -19,6 +19,11 @@ import InventoryList from './pages/branch/InventoryList';
 import InventoryForm from './pages/branch/InventoryForm';
 import InventoryUpload from './pages/branch/InventoryUpload';
 import Reports from './pages/branch/Reports';
+import ItemMaster from './pages/branch/ItemMaster';
+import StockManagement from './pages/branch/StockManagement';
+import BatchTracking from './pages/branch/BatchTracking';
+import UomManagement from './pages/branch/UomManagement';
+import InventoryReports from './pages/branch/InventoryReports';
 import Users from './pages/admin/Users';
 import CompanyDetails from './pages/admin/CompanyDetails';
 // duplicate import removed
@@ -106,6 +111,11 @@ function App() {
               <Route path="branch/inventory/new" element={<InventoryForm />} />
               <Route path="branch/inventory/:id" element={<InventoryForm />} />
               <Route path="branch/inventory/upload" element={<InventoryUpload />} />
+              <Route path="branch/item-master" element={<ItemMaster />} />
+              <Route path="branch/stock" element={<StockManagement />} />
+              <Route path="branch/batch-tracking" element={<BatchTracking />} />
+              <Route path="branch/uoms" element={<UomManagement />} />
+              <Route path="branch/inventory-reports" element={<InventoryReports />} />
               <Route path="branch/reports" element={<Reports />} />
             </Route>
 
