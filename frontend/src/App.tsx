@@ -29,6 +29,7 @@ import Sales from './pages/branch/Sales';
 import Purchases from './pages/branch/Purchases';
 import Users from './pages/admin/Users';
 import CompanyDetails from './pages/admin/CompanyDetails';
+import UserProfile from './pages/UserProfile';
 // duplicate import removed
 
 // Protected Route Component
@@ -95,6 +96,7 @@ function App() {
             >
               <Route index element={<Navigate to="/dashboard" />} />
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="profile" element={<UserProfile />} />
               
               {/* Super Admin Routes */}
               <Route path="admin/companies" element={<Companies />} />

@@ -32,6 +32,7 @@ const CompanyPortal: React.FC = () => {
   const [countries, setCountries] = useState<any[]>([]);
   const [branches, setBranches] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [loginForm, setLoginForm] = useState({
     username: '',
     password: ''
@@ -131,32 +132,68 @@ const CompanyPortal: React.FC = () => {
     }
   }, [companyCode, loadCompanyData]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!loginForm.username || !loginForm.password) {
+      toast.error('Please enter username and password');
+      return;
+    }
+
+    if (!companyCode) {
+      toast.error('Company code is missing');
+      return;
+    }
+
     try {
-      // This would typically authenticate against your backend
-      // For demo purposes, we'll accept any credentials
-      if (loginForm.username && loginForm.password) {
-        localStorage.setItem(`company_${companyCode}_token`, 'demo-token');
-        loadCompanyData(); // Remove await to avoid blocking
-        toast.success('Login successful!');
-      } else {
-        toast.error('Please enter username and password');
+      setLoading(true);
+      
+      // Get company first to get the companyId
+      const company = await apiService.getCompanyByCode(companyCode);
+      if (!company) {
+        toast.error('Company not found');
+        setLoading(false);
+        return;
       }
-    } catch (error) {
+
+      // Authenticate user
+      const authResult = await apiService.authenticateCompanyUser(
+        company.id,
+        loginForm.username,
+        loginForm.password
+      );
+
+      if (authResult.success && authResult.user) {
+        // Store authentication token and user info
+        const token = `${company.id}_${authResult.user.id}_${Date.now()}`;
+        localStorage.setItem(`company_${companyCode}_token`, token);
+        localStorage.setItem(`company_${companyCode}_user`, JSON.stringify(authResult.user));
+        
+        // Load company data
+        await loadCompanyData();
+        
+        toast.success(`Welcome back, ${authResult.user.firstName || authResult.user.username}!`);
+      } else {
+        toast.error(authResult.message || 'Invalid credentials');
+      }
+    } catch (error: any) {
       console.error('Login failed:', error);
-      toast.error('Login failed');
+      toast.error(error?.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem(`company_${companyCode}_token`);
+    localStorage.removeItem(`company_${companyCode}_user`);
     setState({
       isAuthenticated: false,
       company: null,
       user: null,
       licenseValidation: null
     });
+    setLoginForm({ username: '', password: '' });
     toast.success('Logged out successfully');
   };
 
@@ -215,9 +252,17 @@ const CompanyPortal: React.FC = () => {
               <div>
                 <button
                   type="submit"
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                  disabled={loading}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sign in
+                  {loading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>Signing in...</span>
+                    </div>
+                  ) : (
+                    'Sign in'
+                  )}
                 </button>
               </div>
             </form>

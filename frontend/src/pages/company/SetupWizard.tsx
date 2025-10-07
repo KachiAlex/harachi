@@ -602,8 +602,8 @@ const SetupWizard: React.FC = () => {
         // Don't fail the setup if license creation fails
       }
 
-      // Mark all steps as completed
-      setSteps(prev => prev.map(step => ({ ...step, completed: true })));
+    // Mark all steps as completed
+    setSteps(prev => prev.map(step => ({ ...step, completed: true })));
       
       // Set setup completion flag for CompanyPortal to recognize
       localStorage.setItem(`company_${formData.companyCode}_setup_complete`, 'true');
@@ -616,7 +616,7 @@ const SetupWizard: React.FC = () => {
       
       // Wait a moment for the toast to be visible before navigating
       setTimeout(() => {
-        navigate(`/company/${formData.companyCode}`);
+      navigate(`/company/${formData.companyCode}`);
       }, 500);
       
     } catch (err: any) {

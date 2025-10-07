@@ -788,6 +788,113 @@ class ApiService {
     await deleteDoc(doc(db, 'users', userId));
   }
 
+  // Authentication for Company Portal
+  async authenticateCompanyUser(companyId: string, username: string, password: string): Promise<{
+    success: boolean;
+    user?: any;
+    message?: string;
+  }> {
+    try {
+      // Find user by username and companyId
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('companyId', '==', companyId),
+        where('username', '==', username),
+        where('isActive', '==', true)
+      );
+      
+      const snapshot = await getDocs(usersQuery);
+      
+      if (snapshot.empty) {
+        return {
+          success: false,
+          message: 'Invalid username or password'
+        };
+      }
+
+      const userDoc = snapshot.docs[0];
+      const userData = userDoc.data();
+
+      // For now, if no password is set (legacy users), allow any password
+      // This will be updated when we migrate all users to hashed passwords
+      if (!userData.password) {
+        console.warn('User has no password set, allowing login for migration');
+        return {
+          success: true,
+          user: {
+            id: userDoc.id,
+            ...userData
+          }
+        };
+      }
+
+      // Verify password (assuming it's stored as plain text for now, will hash later)
+      // TODO: Once all passwords are hashed, use bcrypt.compare
+      if (userData.password === password) {
+        // Update last login
+        await updateDoc(doc(db, 'users', userDoc.id), {
+          lastLogin: new Date()
+        });
+
+        return {
+          success: true,
+          user: {
+            id: userDoc.id,
+            ...userData,
+            password: undefined // Don't return password
+          }
+        };
+      }
+
+      return {
+        success: false,
+        message: 'Invalid username or password'
+      };
+    } catch (error) {
+      console.error('Authentication error:', error);
+      return {
+        success: false,
+        message: 'Authentication failed. Please try again.'
+      };
+    }
+  }
+
+  async getUserByUsername(companyId: string, username: string) {
+    const usersQuery = query(
+      collection(db, 'users'),
+      where('companyId', '==', companyId),
+      where('username', '==', username)
+    );
+    const snapshot = await getDocs(usersQuery);
+    if (snapshot.empty) return null;
+    const userDoc = snapshot.docs[0];
+    return { id: userDoc.id, ...userDoc.data() };
+  }
+
+  async updateUserPassword(userId: string, newPasswordHash: string) {
+    await updateDoc(doc(db, 'users', userId), {
+      password: newPasswordHash,
+      updatedAt: new Date()
+    });
+  }
+
+  async getUserById(userId: string) {
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) return null;
+    return { id: userDoc.id, ...userDoc.data() };
+  }
+
+  async updateUserProfile(userId: string, updates: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+  }) {
+    await updateDoc(doc(db, 'users', userId), {
+      ...updates,
+      updatedAt: new Date()
+    });
+  }
+
   // Roles
   async getRoles(companyId: string) {
     const response = await this.api.get(`/companies/${companyId}/roles`);
