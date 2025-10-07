@@ -766,7 +766,7 @@ class ApiService {
   async createCompanyUser(companyId: string, data: { name: string; email: string; username: string; role: string; password?: string; }): Promise<string> {
     const [firstName, ...rest] = (data.name || '').trim().split(/\s+/);
     const lastName = rest.join(' ');
-    const userData = {
+    const userData: any = {
       email: data.email,
       username: data.username,
       firstName: firstName || '',
@@ -778,8 +778,14 @@ class ApiService {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    console.log('Creating user:', userData);
-    const docRef = await addDoc(collection(db, 'users'), userData as any);
+    
+    // Store password if provided (for now as plain text, should be hashed in production)
+    if (data.password) {
+      userData.password = data.password;
+    }
+    
+    console.log('Creating user:', { ...userData, password: userData.password ? '***' : undefined });
+    const docRef = await addDoc(collection(db, 'users'), userData);
     console.log('User created with ID:', docRef.id);
     return docRef.id;
   }

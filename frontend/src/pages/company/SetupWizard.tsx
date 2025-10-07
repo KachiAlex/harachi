@@ -387,8 +387,13 @@ const SetupWizard: React.FC = () => {
 
   // User management functions
   const addUser = async () => {
-    if (!userForm.name.trim() || !userForm.email.trim() || !userForm.username.trim() || !userForm.role) {
-      toast.error('Please fill name, email, username and role');
+    if (!userForm.name.trim() || !userForm.email.trim() || !userForm.username.trim() || !userForm.role || !userForm.password.trim()) {
+      toast.error('Please fill all fields including password');
+      return;
+    }
+    
+    if (userForm.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
       return;
     }
 
@@ -1199,6 +1204,13 @@ const SetupWizard: React.FC = () => {
                   value={userForm.username}
                   onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
                 />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  className="input-field"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                />
                 <select 
                   className="input-field"
                   value={userForm.role}
@@ -1209,9 +1221,9 @@ const SetupWizard: React.FC = () => {
                   <option value="Staff Member">Staff Member</option>
                 </select>
                 <button 
-                  className="btn-primary md:col-span-2"
+                  className="btn-primary"
                   onClick={addUser}
-                  disabled={loading || !userForm.name || !userForm.email || !userForm.username}
+                  disabled={loading || !userForm.name || !userForm.email || !userForm.username || !userForm.password}
                 >
                   {loading ? 'Adding...' : 'Add User'}
                 </button>
