@@ -14,12 +14,15 @@ import {
   Box,
   Layers,
   GitBranch,
-  Ruler
+  Ruler,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBranch } from '../../contexts/BranchContext';
 
 const Sidebar: React.FC = () => {
   const { user } = useAuth();
+  const { selectedBranch } = useBranch();
 
   if (!user) return null;
 
@@ -28,7 +31,8 @@ const Sidebar: React.FC = () => {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['*'] },
-    { name: 'Branch Dashboard', href: '/branch', icon: LayoutDashboard, roles: ['Branch Admin'] },
+    { name: 'Branch Dashboard', href: '/branch/dashboard', icon: LayoutDashboard, roles: ['Branch Admin', 'Branch Manager', 'Inventory Officer', 'Company Admin'] },
+    { name: 'Switch Branch', href: '/branch/select', icon: RefreshCw, roles: ['Branch Admin', 'Branch Manager', 'Inventory Officer', 'Company Admin'] },
     
     // Super Admin routes
     { name: 'Companies', href: '/admin/companies', icon: Building2, roles: ['Super Admin'] },
@@ -69,6 +73,23 @@ const Sidebar: React.FC = () => {
 
   return (
     <div className="w-64 bg-gray-50 border-r border-gray-200 min-h-screen">
+      {/* Selected Branch Indicator */}
+      {selectedBranch && (
+        <div className="mt-4 mx-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center space-x-2">
+            <MapPin className="h-4 w-4 text-blue-600" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-blue-900 truncate">
+                Current Branch
+              </p>
+              <p className="text-sm font-semibold text-blue-700 truncate">
+                {selectedBranch.name}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <nav className="mt-8 px-4">
         <div className="space-y-1">
           {filteredNavigation.map((item) => {

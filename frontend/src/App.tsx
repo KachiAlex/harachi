@@ -11,11 +11,13 @@ import SetupWizard from './pages/company/SetupWizard';
 import LicensePage from './pages/company/LicensePage';
 import CompanyPortal from './pages/company/CompanyPortal';
 import LicenseManagement from './pages/company/LicenseManagement';
+import BranchSelection from './pages/company/BranchSelection';
 import UomsPage from './pages/company/Uoms';
 import BranchesUpload from './pages/company/BranchesUpload';
 import CustomersUpload from './pages/company/CustomersUpload';
 import VendorsUpload from './pages/company/VendorsUpload';
 import BranchDashboard from './pages/branch/Dashboard';
+import NewBranchDashboard from './pages/branch/BranchDashboard';
 import InventoryList from './pages/branch/InventoryList';
 import InventoryForm from './pages/branch/InventoryForm';
 import InventoryUpload from './pages/branch/InventoryUpload';
@@ -82,6 +84,7 @@ function App() {
 
             {/* Company Portal Routes - More specific routes first */}
             <Route path="/company/:companyCode/setup" element={<SetupWizard />} />
+            <Route path="/company/:companyCode/branches" element={<BranchSelection />} />
             <Route path="/company/:companyCode/license" element={<LicenseManagement />} />
             <Route path="/company/:companyCode" element={<CompanyPortal />} />
 
@@ -113,6 +116,8 @@ function App() {
 
               {/* Branch Admin Routes */}
               <Route path="branch" element={<BranchDashboard />} />
+              <Route path="branch/dashboard" element={<NewBranchDashboard />} />
+              <Route path="branch/select" element={<BranchSelection />} />
               <Route path="branch/inventory" element={<InventoryList />} />
               <Route path="branch/inventory/new" element={<InventoryForm />} />
               <Route path="branch/inventory/:id" element={<InventoryForm />} />
