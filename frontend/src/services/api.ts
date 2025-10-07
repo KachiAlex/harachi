@@ -58,6 +58,71 @@ class ApiService {
     return snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) })) as Company[];
   }
 
+  // Item Master
+  async getItems(companyId: string, branchId?: string) {
+    const params = branchId ? { branchId } : {};
+    const response = await this.api.get('/item-master', { 
+      params: { companyId, ...params },
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async getItem(itemId: string) {
+    const response = await this.api.get(`/item-master/${itemId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async createItem(itemData: any) {
+    const response = await this.api.post('/item-master', itemData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async updateItem(itemId: string, itemData: any) {
+    const response = await this.api.put(`/item-master/${itemId}`, itemData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async deleteItem(itemId: string) {
+    const response = await this.api.delete(`/item-master/${itemId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async getItemUoms(itemId: string) {
+    const response = await this.api.get(`/item-master/${itemId}/uoms`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async convertItemUom(itemId: string, fromUomId: string, toUomId: string, quantity: number) {
+    const response = await this.api.post(`/item-master/${itemId}/convert`, {
+      fromUomId,
+      toUomId,
+      quantity
+    }, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async getLowStockAlerts(companyId: string, branchId?: string) {
+    const params = branchId ? { branchId } : {};
+    const response = await this.api.get('/item-master/alerts/low-stock', {
+      params: { companyId, ...params },
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
   // Licenses
   async createLicense(companyId: string, licenseData: Partial<License>) {
     const licenseRef = await addDoc(collection(db, 'companies', companyId, 'licenses'), {
