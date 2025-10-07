@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
+import DemoDataGenerator from '../components/DemoDataGenerator';
 import toast from 'react-hot-toast';
 import { 
   Building2, 
@@ -215,6 +216,14 @@ const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Demo Data Generator - Only for Company Admin */}
+      {isCompanyAdmin && user?.company?.id && (
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Setup</h2>
+          <DemoDataGenerator companyId={user.company.id} />
         </div>
       )}
 
