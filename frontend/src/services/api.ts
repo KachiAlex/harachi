@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { Company, Country, Branch, Role, Warehouse, ChartOfAccount, TaxRule, UnitOfMeasure, InventoryItem, LicenseType } from '../types';
+import { License } from '../types/license';
 import { db } from '../firebase/config';
 import { collection, getDocs, addDoc, doc, getDoc, updateDoc, deleteDoc, query, where } from 'firebase/firestore';
 
@@ -58,6 +59,30 @@ class ApiService {
   }
 
   // Licenses
+  async createLicense(companyId: string, licenseData: Partial<License>) {
+    const licenseRef = await addDoc(collection(db, 'companies', companyId, 'licenses'), {
+      companyId,
+      type: licenseData.type || 'basic',
+      status: 'active',
+      seats: licenseData.seats || 5,
+      issuedAt: new Date(),
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+      isActive: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      ...licenseData
+    });
+    return licenseRef.id;
+  }
+
+  async getCompanyLicense(companyId: string): Promise<License | null> {
+    const licensesSnapshot = await getDocs(collection(db, 'companies', companyId, 'licenses'));
+    if (licensesSnapshot.empty) return null;
+    
+    const license = licensesSnapshot.docs[0];
+    return { id: license.id, ...license.data() } as License;
+  }
+
   async generateLicense(companyId: string, licenseTypeId: string) {
     const licenseTypes = this.getLicenseTypes();
     const licenseType = licenseTypes.find(lt => lt.id === licenseTypeId);
@@ -305,6 +330,11 @@ class ApiService {
     return snap.exists() ? ({ id: snap.id, ...(snap.data() as any) } as Company) : null;
   }
 
+  async getCompanyByCode(code: string) {
+    const companies = await this.getCompanies();
+    return companies.find(company => company.code === code) || null;
+  }
+
   async updateCompany(id: string, companyData: Partial<Company>) {
     await updateDoc(doc(db, 'companies', id), { ...companyData, updatedAt: new Date() } as any);
     const snap = await getDoc(doc(db, 'companies', id));
@@ -457,15 +487,52 @@ class ApiService {
     return docRef.id;
   }
 
+  async deleteBranch(companyId: string, branchId: string): Promise<void> {
+    await deleteDoc(doc(db, 'companies', companyId, 'branches', branchId));
+  }
+
+  async updateBranch(companyId: string, branchId: string, updates: Partial<Branch>): Promise<void> {
+    await updateDoc(doc(db, 'companies', companyId, 'branches', branchId), {
+      ...updates,
+      updatedAt: new Date()
+    });
+  }
+
   // Users
   async getUsers(companyId: string) {
-    const response = await this.api.get(`/companies/${companyId}/users`);
-    return response.data;
+    // Load users directly from Firestore instead of Cloud Functions endpoint
+    // to avoid 404s and network issues when the endpoint is not available.
+    const q = query(collection(db, 'users'), where('companyId', '==', companyId));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
   }
 
   async createUser(companyId: string, userData: any) {
     const response = await this.api.post(`/companies/${companyId}/users`, userData);
     return response.data;
+  }
+
+  // Simple Firestore-backed user management for setup wizard
+  async createCompanyUser(companyId: string, data: { name: string; email: string; username: string; role: string; password?: string; }): Promise<string> {
+    const [firstName, ...rest] = (data.name || '').trim().split(/\s+/);
+    const lastName = rest.join(' ');
+    const docRef = await addDoc(collection(db, 'users'), {
+      email: data.email,
+      username: data.username,
+      firstName: firstName || '',
+      lastName: lastName || '',
+      companyId,
+      roles: [data.role],
+      isActive: true,
+      isAdmin: data.role === 'Company Admin',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any);
+    return docRef.id;
+  }
+
+  async deleteCompanyUser(userId: string): Promise<void> {
+    await deleteDoc(doc(db, 'users', userId));
   }
 
   // Roles

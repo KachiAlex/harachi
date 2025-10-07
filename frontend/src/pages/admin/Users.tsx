@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import { apiService } from '../../services/api';
 
 const Users: React.FC = () => {
-  const { user } = useAuth();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,9 +40,6 @@ const Users: React.FC = () => {
     setForm({ email: '', firstName: '', lastName: '', roles: ['User'], isActive: true });
   };
 
-  const handleRoleChange = (userId: string, newRoles: string[]) => {
-    setUsers(users.map(u => u.id === userId ? { ...u, roles: newRoles } : u));
-  };
 
   const handleStatusChange = (userId: string, isActive: boolean) => {
     setUsers(users.map(u => u.id === userId ? { ...u, isActive } : u));

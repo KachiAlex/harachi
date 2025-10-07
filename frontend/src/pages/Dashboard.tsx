@@ -8,7 +8,6 @@ import {
   Users, 
   MapPin, 
   Package, 
-  TrendingUp,
   DollarSign,
   ShoppingCart,
   ShoppingBag,
@@ -54,7 +53,6 @@ const Dashboard: React.FC = () => {
 
   const isSuperAdmin = user.roles.some(role => role.name === 'Super Admin');
   const isCompanyAdmin = user.roles.some(role => role.name === 'Company Admin');
-  const isBranchAdmin = user.roles.some(role => role.name === 'Branch Admin');
 
   const stats = [
     {

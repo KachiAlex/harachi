@@ -6,9 +6,14 @@ service cloud.firestore {
       return request.auth != null;
     }
     
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
     function userHasRole(role) {
-      return isAuthenticated() &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.roles.hasAny([role]);
+      return isAuthenticated() && 
+        getUserData().roles != null && 
+        getUserData().roles.hasAny([role]);
     }
 
     function isSuperAdmin() {
@@ -19,53 +24,70 @@ service cloud.firestore {
       return userHasRole('Company Admin');
     }
     
+    function isBranchManager() {
+      return userHasRole('Branch Manager');
+    }
+    
     function isUserInCompany(companyId) {
       return isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.companyId == companyId;
+        getUserData().companyId == companyId;
+    }
+    
+    function isUserActive() {
+      return isAuthenticated() && 
+        getUserData().isActive == true;
     }
     
     // Global collections
     match /companies/{companyId} {
       allow read, write: if isSuperAdmin();
-      allow read: if isUserInCompany(companyId);
+      allow read: if isUserActive() && isUserInCompany(companyId);
+      allow write: if isUserActive() && isUserInCompany(companyId) && isCompanyAdmin();
       
       // Company subcollections
       match /countries/{countryId} {
-        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+        allow read: if isUserActive() && isUserInCompany(companyId);
+        allow write: if isUserActive() && isUserInCompany(companyId) && (isCompanyAdmin() || isBranchManager());
       }
       
       match /branches/{branchId} {
-        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+        allow read: if isUserActive() && isUserInCompany(companyId);
+        allow write: if isUserActive() && isUserInCompany(companyId) && (isCompanyAdmin() || isBranchManager());
       }
       
       match /users/{userId} {
-        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+        allow read: if isUserActive() && isUserInCompany(companyId);
+        allow write: if isUserActive() && isUserInCompany(companyId) && isCompanyAdmin();
       }
       
       match /inventory/{itemId} {
-        allow read: if isUserInCompany(companyId);
-        allow write: if isSuperAdmin() || isCompanyAdmin() || userHasRole('Branch Admin') && isUserInCompany(companyId);
+        allow read: if isUserActive() && isUserInCompany(companyId);
+        allow write: if isUserActive() && isUserInCompany(companyId) && (isCompanyAdmin() || isBranchManager());
       }
       
       match /transactions/{transactionId} {
-        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+        allow read: if isUserActive() && isUserInCompany(companyId);
+        allow write: if isUserActive() && isUserInCompany(companyId) && (isCompanyAdmin() || isBranchManager());
       }
       
       match /finance/{entryId} {
-        allow read, write: if isSuperAdmin() || isUserInCompany(companyId);
+        allow read: if isUserActive() && isUserInCompany(companyId);
+        allow write: if isUserActive() && isUserInCompany(companyId) && isCompanyAdmin();
       }
     }
     
     // Users collection
     match /users/{userId} {
       allow read, write: if isSuperAdmin();
-      allow read, write: if isAuthenticated() && request.auth.uid == userId;
-      allow read: if isAuthenticated() && isUserInCompany(resource.data.companyId);
+      allow read, write: if isUserActive() && request.auth.uid == userId;
+      allow read: if isUserActive() && isUserInCompany(resource.data.companyId);
+      allow write: if isUserActive() && isUserInCompany(resource.data.companyId) && isCompanyAdmin();
       
       // User roles subcollection
       match /roles/{roleId} {
         allow read, write: if isSuperAdmin();
-        allow read: if isAuthenticated() && request.auth.uid == userId;
+        allow read: if isUserActive() && request.auth.uid == userId;
+        allow write: if isUserActive() && isUserInCompany(getUserData().companyId) && isCompanyAdmin();
       }
     }
     

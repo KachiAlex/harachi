@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Building2, Users, MapPin, Settings, LogOut, AlertTriangle, Clock, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { apiService } from '../../services/api';
+import { useRole } from '../../contexts/RoleContext';
 
 interface CompanyPortalState {
   isAuthenticated: boolean;
@@ -20,6 +21,7 @@ interface CompanyPortalState {
 const CompanyPortal: React.FC = () => {
   const { companyCode } = useParams<{ companyCode: string }>();
   const navigate = useNavigate();
+  const { canManageUsers, canManageCountries, isCompanyAdmin } = useRole();
   
   const [state, setState] = useState<CompanyPortalState>({
     isAuthenticated: false,
@@ -27,30 +29,44 @@ const CompanyPortal: React.FC = () => {
     user: null,
     licenseValidation: null
   });
+  const [countries, setCountries] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loginForm, setLoginForm] = useState({
     username: '',
     password: ''
   });
 
-  useEffect(() => {
-    // Check if user is already authenticated
-    const authToken = localStorage.getItem(`company_${companyCode}_token`);
-    if (authToken) {
-      // Verify token and load company data
-      loadCompanyData();
-    }
-  }, [companyCode]);
-
-  const loadCompanyData = async () => {
+  const loadCompanyData = useCallback(async () => {
     try {
-      // This would typically load from your backend
-      // For now, we'll simulate it with mock data
-      const company = {
-        id: '1',
-        name: 'Company Name',
-        code: companyCode,
-        isActive: true
-      };
+      // Load real company data from Firestore
+      if (!companyCode) {
+        console.error('Company code not found');
+        return;
+      }
+      
+      console.log('Looking for company with code:', companyCode);
+      const company = await apiService.getCompanyByCode(companyCode!);
+      console.log('Found company:', company);
+      
+      if (!company) {
+        console.error('Company not found for code:', companyCode);
+        return;
+      }
+
+      // Load setup collections from Firestore to determine completion accurately
+      try {
+        const [loadedCountries, loadedBranches, loadedUsers] = await Promise.all([
+          apiService.getCountries(company.id),
+          apiService.getBranches(company.id),
+          apiService.getUsers(company.id)
+        ]);
+        setCountries(loadedCountries);
+        setBranches(loadedBranches);
+        setUsers(loadedUsers);
+      } catch (collectionsError) {
+        console.warn('Unable to load setup collections', collectionsError);
+      }
 
       // Mock license validation to avoid API errors
       const licenseValidation = {
@@ -90,7 +106,23 @@ const CompanyPortal: React.FC = () => {
       console.error('Failed to load company data:', error);
       toast.error('Failed to load company data');
     }
-  };
+  }, [companyCode]);
+
+  useEffect(() => {
+    // Check if user is already authenticated or if we're coming from setup completion
+    const authToken = localStorage.getItem(`company_${companyCode}_token`);
+    const isFromSetup = localStorage.getItem(`company_${companyCode}_setup_complete`);
+    
+    if (authToken || isFromSetup) {
+      // Verify token and load company data
+      loadCompanyData();
+      
+      // Clear setup completion flag if it exists
+      if (isFromSetup) {
+        localStorage.removeItem(`company_${companyCode}_setup_complete`);
+      }
+    }
+  }, [companyCode, loadCompanyData]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,6 +250,25 @@ const CompanyPortal: React.FC = () => {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
+          {/* Resume Setup Banner */}
+          {(!state.company?.isSetupComplete || countries.length === 0 || branches.length === 0 || users.length === 0) && (
+            <div className="mb-6 p-4 rounded-lg border bg-yellow-50 border-yellow-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                  <p className="ml-3 text-sm text-yellow-800">
+                    Your setup is not yet complete. Resume the setup wizard to finish configuration.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate(`/company/${companyCode}/setup`)}
+                  className="btn-primary text-sm"
+                >
+                  Resume Setup
+                </button>
+              </div>
+            </div>
+          )}
           {/* License Status Banner */}
           {state.licenseValidation && !state.licenseValidation.isValid && (
             <div className={`mb-6 p-4 rounded-lg border ${
@@ -309,107 +360,160 @@ const CompanyPortal: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <MapPin className="h-6 w-6 text-green-600" />
+            {canManageCountries && (
+              <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <MapPin className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 truncate">
+                          Countries
+                        </dt>
+                        <dd className="text-lg font-medium text-gray-900">
+                          Manage locations
+                        </dd>
+                      </dl>
+                    </div>
                   </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        Countries
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        Manage locations
-                      </dd>
-                    </dl>
+                </div>
+                <div className="bg-gray-50 px-5 py-3">
+                  <div className="text-sm">
+                    <button 
+                      onClick={() => navigate(`/company/${companyCode}/setup`)}
+                      className="font-medium text-green-700 hover:text-green-900"
+                    >
+                      Manage Countries
+                    </button>
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-50 px-5 py-3">
-                <div className="text-sm">
-                  <button 
-                    onClick={() => navigate(`/company/${companyCode}/setup`)}
-                    className="font-medium text-green-700 hover:text-green-900"
-                  >
-                    Manage Countries
-                  </button>
-                </div>
-              </div>
-            </div>
+            )}
 
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="p-5">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0">
-                    <Users className="h-6 w-6 text-blue-600" />
+            {canManageUsers && (
+              <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <Users className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 truncate">
+                          Users
+                        </dt>
+                        <dd className="text-lg font-medium text-gray-900">
+                          Manage team members
+                        </dd>
+                      </dl>
+                    </div>
                   </div>
-                  <div className="ml-5 w-0 flex-1">
-                    <dl>
-                      <dt className="text-sm font-medium text-gray-500 truncate">
-                        Users
-                      </dt>
-                      <dd className="text-lg font-medium text-gray-900">
-                        Manage team members
-                      </dd>
-                    </dl>
+                </div>
+                <div className="bg-gray-50 px-5 py-3">
+                  <div className="text-sm">
+                    <button 
+                      onClick={() => navigate(`/company/${companyCode}/setup`)}
+                      className="font-medium text-blue-700 hover:text-blue-900"
+                    >
+                      Manage Users
+                    </button>
                   </div>
                 </div>
               </div>
-              <div className="bg-gray-50 px-5 py-3">
-                <div className="text-sm">
-                  <button 
-                    onClick={() => navigate(`/company/${companyCode}/setup`)}
-                    className="font-medium text-blue-700 hover:text-blue-900"
-                  >
-                    Manage Users
-                  </button>
+            )}
+
+            {isCompanyAdmin && (
+              <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <Shield className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div className="ml-5 w-0 flex-1">
+                      <dl>
+                        <dt className="text-sm font-medium text-gray-500 truncate">
+                          License
+                        </dt>
+                        <dd className="text-lg font-medium text-gray-900">
+                          Manage license
+                        </dd>
+                      </dl>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-50 px-5 py-3">
+                  <div className="text-sm">
+                    <button 
+                      onClick={() => navigate(`/company/${companyCode}/license`)}
+                      className="font-medium text-purple-700 hover:text-purple-900"
+                    >
+                      Manage License
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Setup Status */}
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Setup Status</h3>
-              <button
-                onClick={() => navigate(`/company/${companyCode}/setup`)}
-                className="btn-primary text-sm"
-              >
-                Complete Setup
-              </button>
+              {!state.company?.isSetupComplete || countries.length === 0 || branches.length === 0 || users.length === 0 ? (
+                <button
+                  onClick={() => navigate(`/company/${companyCode}/setup`)}
+                  className="btn-primary text-sm"
+                >
+                  Complete Setup
+                </button>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Setup Complete
+                </span>
+              )}
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700">Company Information</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Not Started
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  state.company?.name ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {state.company?.name ? 'Complete' : 'Not Started'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700">Countries Setup</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Not Started
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  countries.length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {countries.length > 0 ? 'Complete' : 'Not Started'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700">Branches Setup</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Not Started
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  branches.length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {branches.length > 0 ? 'Complete' : 'Not Started'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700">User Management</span>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Not Started
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                  users.length > 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {users.length > 0 ? 'Complete' : 'Not Started'}
                 </span>
               </div>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-200">
               <p className="text-xs text-gray-500">
-                Complete the setup wizard to configure your company structure and start using all features.
+                {state.company?.isSetupComplete && countries.length > 0 && branches.length > 0 && users.length > 0
+                  ? 'Setup completed successfully! You can now use all features of the system.'
+                  : 'Complete the setup wizard to configure your company structure and start using all features.'
+                }
               </p>
             </div>
           </div>

@@ -19,12 +19,8 @@ const Sidebar: React.FC = () => {
 
   if (!user) return null;
 
-  const isSuperAdmin = user.roles.some(role => role.name === 'Super Admin');
-  const isCompanyAdmin = user.roles.some(role => role.name === 'Company Admin');
-  const isBranchAdmin = user.roles.some(role => role.name === 'Branch Admin');
-  const isAccountant = user.roles.some(role => role.name === 'Accountant');
-  const isInventoryOfficer = user.roles.some(role => role.name === 'Inventory Officer');
-  const isAuditor = user.roles.some(role => role.name === 'Auditor');
+  // Role checks for navigation filtering
+  const userRoles = user.roles.map(role => role.name);
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['*'] },
@@ -54,9 +50,7 @@ const Sidebar: React.FC = () => {
 
   const canAccess = (requiredRoles: string[]) => {
     if (requiredRoles.includes('*')) return true;
-    return requiredRoles.some(role => 
-      user.roles.some(userRole => userRole.name === role)
-    );
+    return requiredRoles.some(role => userRoles.includes(role));
   };
 
   const filteredNavigation = navigation.filter(item => canAccess(item.roles));

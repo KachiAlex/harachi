@@ -121,3 +121,6 @@ app.use(errorHandler);
 
 // Export the Express app as a Cloud Function (1st Gen)
 export const api = onRequest(app);
+
+// Export Firestore triggers
+export * from './triggers';

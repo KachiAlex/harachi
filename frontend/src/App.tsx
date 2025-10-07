@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { RoleProvider } from './contexts/RoleContext';
 import Layout from './components/Layout/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -8,6 +9,7 @@ import Companies from './pages/admin/Companies';
 import SetupWizard from './pages/company/SetupWizard';
 import LicensePage from './pages/company/LicensePage';
 import CompanyPortal from './pages/company/CompanyPortal';
+import LicenseManagement from './pages/company/LicenseManagement';
 import UomsPage from './pages/company/Uoms';
 import BranchesUpload from './pages/company/BranchesUpload';
 import CustomersUpload from './pages/company/CustomersUpload';
@@ -54,8 +56,9 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="App">
+      <RoleProvider>
+        <Router>
+          <div className="App">
           <Routes>
             {/* Public Routes */}
             <Route 
@@ -69,6 +72,7 @@ function App() {
 
             {/* Company Portal Routes - More specific routes first */}
             <Route path="/company/:companyCode/setup" element={<SetupWizard />} />
+            <Route path="/company/:companyCode/license" element={<LicenseManagement />} />
             <Route path="/company/:companyCode" element={<CompanyPortal />} />
 
             {/* Protected Routes */}
@@ -108,8 +112,9 @@ function App() {
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/dashboard" />} />
           </Routes>
-        </div>
-      </Router>
+          </div>
+        </Router>
+      </RoleProvider>
     </AuthProvider>
   );
 }

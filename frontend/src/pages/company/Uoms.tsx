@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/api';
 import { UnitOfMeasure } from '../../types';
@@ -11,13 +11,13 @@ const UomsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user?.companyId) return;
     const data = await apiService.getUoms(user.companyId);
     setUoms(data);
-  };
+  }, [user?.companyId]);
 
-  useEffect(() => { load(); }, [user?.companyId]);
+  useEffect(() => { load(); }, [load]);
 
   const handleSave = async () => {
     if (!user?.companyId || !form.name || !form.code) return;
