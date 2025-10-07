@@ -123,6 +123,82 @@ class ApiService {
     return response.data;
   }
 
+  // Stock Management
+  async getStockMovements(companyId: string, branchId?: string, params?: any) {
+    const queryParams = { companyId, ...params };
+    if (branchId) queryParams.branchId = branchId;
+    
+    const response = await this.api.get('/stock/movements', {
+      params: queryParams,
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async createStockMovement(movementData: any) {
+    const response = await this.api.post('/stock/movements', movementData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async createStockAdjustment(adjustmentData: any) {
+    const response = await this.api.post('/stock/adjustments', adjustmentData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async createStockTransfer(transferData: any) {
+    const response = await this.api.post('/stock/transfers', transferData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async getStockSummary(companyId: string, branchId?: string) {
+    const params: any = { companyId };
+    if (branchId) params.branchId = branchId;
+    
+    const response = await this.api.get('/stock/summary', {
+      params,
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  // Batch Tracking
+  async getBatches(companyId: string, params?: any) {
+    const response = await this.api.get('/batch-tracking', {
+      params: { companyId, ...params },
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async createBatch(batchData: any) {
+    const response = await this.api.post('/batch-tracking', batchData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async getBatchTraceability(batchId: string) {
+    const response = await this.api.get(`/batch-tracking/${batchId}/traceability`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  // Inventory Reports
+  async getInventoryReports(companyId: string, reportType: string, params?: any) {
+    const response = await this.api.get(`/inventory-reports/${reportType}`, {
+      params: { companyId, ...params },
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
   // Licenses
   async createLicense(companyId: string, licenseData: Partial<License>) {
     const licenseRef = await addDoc(collection(db, 'companies', companyId, 'licenses'), {
