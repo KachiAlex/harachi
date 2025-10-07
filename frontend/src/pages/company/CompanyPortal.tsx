@@ -413,67 +413,67 @@ const CompanyPortal: React.FC = () => {
             </div>
 
             {canManageCountries && (
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <MapPin className="h-6 w-6 text-green-600" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          Countries
-                        </dt>
-                        <dd className="text-lg font-medium text-gray-900">
-                          Manage locations
-                        </dd>
-                      </dl>
-                    </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <MapPin className="h-6 w-6 text-green-600" />
                   </div>
-                </div>
-                <div className="bg-gray-50 px-5 py-3">
-                  <div className="text-sm">
-                    <button 
-                      onClick={() => navigate(`/company/${companyCode}/setup`)}
-                      className="font-medium text-green-700 hover:text-green-900"
-                    >
-                      Manage Countries
-                    </button>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Countries
+                      </dt>
+                      <dd className="text-lg font-medium text-gray-900">
+                        Manage locations
+                      </dd>
+                    </dl>
                   </div>
                 </div>
               </div>
+              <div className="bg-gray-50 px-5 py-3">
+                <div className="text-sm">
+                  <button 
+                    onClick={() => navigate(`/company/${companyCode}/setup`)}
+                    className="font-medium text-green-700 hover:text-green-900"
+                  >
+                    Manage Countries
+                  </button>
+                </div>
+              </div>
+            </div>
             )}
 
             {canManageUsers && (
-              <div className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="p-5">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0">
-                      <Users className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div className="ml-5 w-0 flex-1">
-                      <dl>
-                        <dt className="text-sm font-medium text-gray-500 truncate">
-                          Users
-                        </dt>
-                        <dd className="text-lg font-medium text-gray-900">
-                          Manage team members
-                        </dd>
-                      </dl>
-                    </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <Users className="h-6 w-6 text-blue-600" />
                   </div>
-                </div>
-                <div className="bg-gray-50 px-5 py-3">
-                  <div className="text-sm">
-                    <button 
-                      onClick={() => navigate(`/company/${companyCode}/setup`)}
-                      className="font-medium text-blue-700 hover:text-blue-900"
-                    >
-                      Manage Users
-                    </button>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Users
+                      </dt>
+                      <dd className="text-lg font-medium text-gray-900">
+                        Manage team members
+                      </dd>
+                    </dl>
                   </div>
                 </div>
               </div>
+              <div className="bg-gray-50 px-5 py-3">
+                <div className="text-sm">
+                  <button 
+                    onClick={() => navigate(`/company/${companyCode}/setup`)}
+                    className="font-medium text-blue-700 hover:text-blue-900"
+                  >
+                    Manage Users
+                  </button>
+                </div>
+              </div>
+            </div>
             )}
 
             {isCompanyAdmin && (
@@ -514,12 +514,12 @@ const CompanyPortal: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Setup Status</h3>
               {!state.company?.isSetupComplete || countries.length === 0 || branches.length === 0 || users.length === 0 ? (
-                <button
-                  onClick={() => navigate(`/company/${companyCode}/setup`)}
-                  className="btn-primary text-sm"
-                >
-                  Complete Setup
-                </button>
+              <button
+                onClick={() => navigate(`/company/${companyCode}/setup`)}
+                className="btn-primary text-sm"
+              >
+                Complete Setup
+              </button>
               ) : (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                   Setup Complete

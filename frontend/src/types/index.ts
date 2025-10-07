@@ -15,10 +15,19 @@ export interface Company {
   schemaName?: string;
   harachiId?: string;
   isActive: boolean;
+  industry?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  isSetupComplete?: boolean;
+  setupCompletedAt?: Date;
   countries?: Country[];
   users?: User[];
   adminUsername?: string;
   adminPassword?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface Country {

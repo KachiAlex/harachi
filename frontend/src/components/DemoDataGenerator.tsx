@@ -54,7 +54,11 @@ const DemoDataGenerator: React.FC<DemoDataGeneratorProps> = ({ companyId, onComp
       setProgress(prev => [...prev, 'Creating inventory items...']);
       for (const item of sampleInventoryItems) {
         try {
-          await apiService.createInventoryItem(companyId, item);
+          await apiService.createInventoryItem(companyId, {
+            ...item,
+            companyId,
+            isActive: true
+          });
         } catch (err) {
           console.warn(`Failed to create item ${item.sku}:`, err);
         }
@@ -65,7 +69,7 @@ const DemoDataGenerator: React.FC<DemoDataGeneratorProps> = ({ companyId, onComp
       setProgress(prev => [...prev, 'Creating customers...']);
       for (const customer of sampleCustomers) {
         try {
-          await apiService.createCustomer(companyId, customer);
+          await apiService.createCustomerFirestore(companyId, customer);
         } catch (err) {
           console.warn(`Failed to create customer ${customer.name}:`, err);
         }
@@ -76,7 +80,7 @@ const DemoDataGenerator: React.FC<DemoDataGeneratorProps> = ({ companyId, onComp
       setProgress(prev => [...prev, 'Creating vendors...']);
       for (const vendor of sampleVendors) {
         try {
-          await apiService.createVendor(companyId, vendor);
+          await apiService.createVendorFirestore(companyId, vendor);
         } catch (err) {
           console.warn(`Failed to create vendor ${vendor.name}:`, err);
         }
