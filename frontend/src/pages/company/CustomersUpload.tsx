@@ -58,7 +58,7 @@ const CustomersUpload: React.FC = () => {
           isActive: true,
         };
         if (customer.name && customer.code) {
-          await apiService.createCustomer(user.companyId, customer);
+          await apiService.createCustomerFirestore(user.companyId, customer);
           count++;
         }
       }

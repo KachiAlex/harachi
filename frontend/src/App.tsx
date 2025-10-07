@@ -24,6 +24,8 @@ import StockManagement from './pages/branch/StockManagement';
 import BatchTracking from './pages/branch/BatchTracking';
 import UomManagement from './pages/branch/UomManagement';
 import InventoryReports from './pages/branch/InventoryReports';
+import Sales from './pages/branch/Sales';
+import Purchases from './pages/branch/Purchases';
 import Users from './pages/admin/Users';
 import CompanyDetails from './pages/admin/CompanyDetails';
 // duplicate import removed
@@ -116,6 +118,8 @@ function App() {
               <Route path="branch/batch-tracking" element={<BatchTracking />} />
               <Route path="branch/uoms" element={<UomManagement />} />
               <Route path="branch/inventory-reports" element={<InventoryReports />} />
+              <Route path="branch/sales" element={<Sales />} />
+              <Route path="branch/purchases" element={<Purchases />} />
               <Route path="branch/reports" element={<Reports />} />
             </Route>
 

@@ -58,7 +58,7 @@ const VendorsUpload: React.FC = () => {
           isActive: true,
         };
         if (vendor.name && vendor.code) {
-          await apiService.createVendor(user.companyId, vendor);
+          await apiService.createVendorFirestore(user.companyId, vendor);
           count++;
         }
       }
