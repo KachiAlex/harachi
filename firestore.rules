@@ -41,23 +41,25 @@ service cloud.firestore {
     // Global collections
     match /companies/{companyId} {
       allow read, write: if isSuperAdmin();
-      allow read: if isUserActive() && isUserInCompany(companyId);
-      allow write: if isUserActive() && isUserInCompany(companyId) && isCompanyAdmin();
+      // Allow read access for company portal and setup wizard
+      allow read: if true;
+      // Allow write during setup (when company is not yet complete) or for authenticated admins
+      allow write: if !resource.data.isSetupComplete || (isUserActive() && isUserInCompany(companyId) && isCompanyAdmin());
       
       // Company subcollections
       match /countries/{countryId} {
-        allow read: if isUserActive() && isUserInCompany(companyId);
-        allow write: if isUserActive() && isUserInCompany(companyId) && (isCompanyAdmin() || isBranchManager());
+        allow read: if true; // Allow read for company portal
+        allow write: if !get(/databases/$(database)/documents/companies/$(companyId)).data.isSetupComplete || (isUserActive() && isUserInCompany(companyId) && (isCompanyAdmin() || isBranchManager()));
       }
       
       match /branches/{branchId} {
-        allow read: if isUserActive() && isUserInCompany(companyId);
-        allow write: if isUserActive() && isUserInCompany(companyId) && (isCompanyAdmin() || isBranchManager());
+        allow read: if true; // Allow read for company portal
+        allow write: if !get(/databases/$(database)/documents/companies/$(companyId)).data.isSetupComplete || (isUserActive() && isUserInCompany(companyId) && (isCompanyAdmin() || isBranchManager()));
       }
       
       match /users/{userId} {
-        allow read: if isUserActive() && isUserInCompany(companyId);
-        allow write: if isUserActive() && isUserInCompany(companyId) && isCompanyAdmin();
+        allow read: if true; // Allow read for company portal
+        allow write: if !get(/databases/$(database)/documents/companies/$(companyId)).data.isSetupComplete || (isUserActive() && isUserInCompany(companyId) && isCompanyAdmin());
       }
       
       match /inventory/{itemId} {
@@ -80,7 +82,7 @@ service cloud.firestore {
     match /users/{userId} {
       allow read, write: if isSuperAdmin();
       allow read, write: if isUserActive() && request.auth.uid == userId;
-      allow read: if isUserActive() && isUserInCompany(resource.data.companyId);
+      allow read: if true; // Allow read for authentication and company portal
       allow write: if isUserActive() && isUserInCompany(resource.data.companyId) && isCompanyAdmin();
       
       // User roles subcollection
