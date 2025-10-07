@@ -373,9 +373,23 @@ const SetupWizard: React.FC = () => {
       return;
     }
 
-    const companyId = user?.company?.id || companyCode;
+    // Check for duplicate email or username
+    const isDuplicateEmail = formData.users.some(u => u.email.toLowerCase() === userForm.email.toLowerCase());
+    const isDuplicateUsername = formData.users.some(u => u.username.toLowerCase() === userForm.username.toLowerCase());
+
+    if (isDuplicateEmail) {
+      toast.error('A user with this email already exists');
+      return;
+    }
+
+    if (isDuplicateUsername) {
+      toast.error('A user with this username already exists');
+      return;
+    }
+
+    const companyId = resolvedCompanyId || user?.company?.id || companyCode;
     if (!companyId) {
-      toast.error('Company information not found');
+      toast.error('Company information not found. Please refresh the page and try again.');
       return;
     }
 
@@ -383,18 +397,21 @@ const SetupWizard: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      console.log('Creating user for company:', companyId, userForm);
       // create lightweight user in Firestore for the setup phase
       const userId = await apiService.createCompanyUser(companyId, userForm);
+      console.log('User created successfully with ID:', userId);
 
+      const newUser = { id: userId, ...userForm };
       setFormData(prev => ({
         ...prev,
-        users: [...prev.users, { id: userId, ...userForm } as any]
+        users: [...prev.users, newUser as any]
       }));
 
       setUserForm({ name: '', email: '', username: '', role: 'Company Admin', password: '' });
-      toast.success('User added');
+      toast.success(`${userForm.name} added successfully!`);
     } catch (err: any) {
-      const errorMessage = err?.message || 'Failed to add user';
+      const errorMessage = err?.message || 'Failed to add user. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);
       console.error('Error adding user:', err);
@@ -534,6 +551,10 @@ const SetupWizard: React.FC = () => {
         companyId = existing?.id || null;
       }
 
+      if (!companyId && !formData.companyCode) {
+        throw new Error('Company code is required to complete setup');
+      }
+
       // Compose update data
       const companyData = {
         name: formData.companyName,
@@ -550,7 +571,9 @@ const SetupWizard: React.FC = () => {
 
       if (companyId) {
         // Update existing company basic info and setup status
+        console.log('Updating company:', companyId, companyData);
         await apiService.updateCompany(companyId, companyData);
+        console.log('Company updated successfully');
       } else {
         // Create new company if none exists (fallback)
         console.log('Creating company with data:', companyData);
@@ -560,6 +583,7 @@ const SetupWizard: React.FC = () => {
           adminPassword: 'admin123'
         } as any);
         companyId = created.id;
+        console.log('Company created successfully:', companyId);
       }
 
       // Ensure sub-data exists: countries/branches/users are already written as user adds them
@@ -578,14 +602,22 @@ const SetupWizard: React.FC = () => {
         // Don't fail the setup if license creation fails
       }
 
-    // Mark all steps as completed
-    setSteps(prev => prev.map(step => ({ ...step, completed: true })));
+      // Mark all steps as completed
+      setSteps(prev => prev.map(step => ({ ...step, completed: true })));
       
       // Set setup completion flag for CompanyPortal to recognize
       localStorage.setItem(`company_${formData.companyCode}_setup_complete`, 'true');
       
-      toast.success('Company setup completed successfully!');
-      navigate(`/company/${formData.companyCode}`);
+      // Show success message
+      toast.success('🎉 Company setup completed successfully!', {
+        duration: 4000,
+        position: 'top-center',
+      });
+      
+      // Wait a moment for the toast to be visible before navigating
+      setTimeout(() => {
+        navigate(`/company/${formData.companyCode}`);
+      }, 500);
       
     } catch (err: any) {
       const errorMessage = err.message || 'Failed to complete setup. Please try again.';

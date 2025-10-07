@@ -199,6 +199,96 @@ class ApiService {
     return response.data;
   }
 
+  // Sales
+  async getCustomers(companyId: string) {
+    const response = await this.api.get('/sales/customers', {
+      params: { companyId },
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async createCustomer(customerData: any) {
+    const response = await this.api.post('/sales/customers', customerData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async getSalesOrders(companyId: string, params?: any) {
+    const response = await this.api.get('/sales/orders', {
+      params: { companyId, ...params },
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async getSalesOrder(orderId: string) {
+    const response = await this.api.get(`/sales/orders/${orderId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async createSalesOrder(orderData: any) {
+    const response = await this.api.post('/sales/orders', orderData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async updateSalesOrder(orderId: string, orderData: any) {
+    const response = await this.api.put(`/sales/orders/${orderId}`, orderData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  // Purchases
+  async getVendors(companyId: string) {
+    const response = await this.api.get('/purchases/vendors', {
+      params: { companyId },
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async createVendor(vendorData: any) {
+    const response = await this.api.post('/purchases/vendors', vendorData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async getPurchaseOrders(companyId: string, params?: any) {
+    const response = await this.api.get('/purchases/orders', {
+      params: { companyId, ...params },
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async getPurchaseOrder(orderId: string) {
+    const response = await this.api.get(`/purchases/orders/${orderId}`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async createPurchaseOrder(orderData: any) {
+    const response = await this.api.post('/purchases/orders', orderData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
+  async updatePurchaseOrder(orderId: string, orderData: any) {
+    const response = await this.api.put(`/purchases/orders/${orderId}`, orderData, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
+    });
+    return response.data;
+  }
+
   // Licenses
   async createLicense(companyId: string, licenseData: Partial<License>) {
     const licenseRef = await addDoc(collection(db, 'companies', companyId, 'licenses'), {
@@ -440,14 +530,26 @@ class ApiService {
   }) {
     // Create the company
     const companyRef = collection(db, 'companies');
-    const companyDoc = await addDoc(companyRef, {
+    const newCompanyData: any = {
       name: companyData.name,
       code: companyData.code,
       harachiId: companyData.harachiId || 'default',
       isActive: true,
+      isSetupComplete: false,
       createdAt: new Date(),
       updatedAt: new Date(),
-    });
+    };
+
+    // Add optional fields if they exist
+    if ('industry' in companyData) newCompanyData.industry = companyData.industry || '';
+    if ('address' in companyData) newCompanyData.address = companyData.address || '';
+    if ('phone' in companyData) newCompanyData.phone = companyData.phone || '';
+    if ('email' in companyData) newCompanyData.email = companyData.email || '';
+    if ('website' in companyData) newCompanyData.website = companyData.website || '';
+
+    const companyDoc = await addDoc(companyRef, newCompanyData);
+
+    console.log('Company created with ID:', companyDoc.id);
 
     // Create admin user for the company
     const userRef = collection(db, 'users');
@@ -477,9 +579,16 @@ class ApiService {
   }
 
   async updateCompany(id: string, companyData: Partial<Company>) {
-    await updateDoc(doc(db, 'companies', id), { ...companyData, updatedAt: new Date() } as any);
+    const updateData = { 
+      ...companyData, 
+      updatedAt: new Date() 
+    };
+    console.log('Updating company document:', id, updateData);
+    await updateDoc(doc(db, 'companies', id), updateData as any);
     const snap = await getDoc(doc(db, 'companies', id));
-    return { id: snap.id, ...(snap.data() as any) } as Company;
+    const updatedCompany = { id: snap.id, ...(snap.data() as any) } as Company;
+    console.log('Company updated, new data:', updatedCompany);
+    return updatedCompany;
   }
 
   async updateCompanyWithAdmin(id: string, companyData: Partial<Company> & { 
@@ -657,7 +766,7 @@ class ApiService {
   async createCompanyUser(companyId: string, data: { name: string; email: string; username: string; role: string; password?: string; }): Promise<string> {
     const [firstName, ...rest] = (data.name || '').trim().split(/\s+/);
     const lastName = rest.join(' ');
-    const docRef = await addDoc(collection(db, 'users'), {
+    const userData = {
       email: data.email,
       username: data.username,
       firstName: firstName || '',
@@ -668,7 +777,10 @@ class ApiService {
       isAdmin: data.role === 'Company Admin',
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as any);
+    };
+    console.log('Creating user:', userData);
+    const docRef = await addDoc(collection(db, 'users'), userData as any);
+    console.log('User created with ID:', docRef.id);
     return docRef.id;
   }
 
@@ -792,13 +904,13 @@ class ApiService {
     await deleteDoc(doc(db, 'companies', companyId, 'inventory', id));
   }
 
-  // Customers
-  async getCustomers(companyId: string): Promise<any[]> {
+  // Customers (Firestore direct access - deprecated, use Sales API methods instead)
+  async getCustomersFirestore(companyId: string): Promise<any[]> {
     const snapshot = await getDocs(collection(db, 'companies', companyId, 'customers'));
     return snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
   }
 
-  async createCustomer(companyId: string, data: any): Promise<string> {
+  async createCustomerFirestore(companyId: string, data: any): Promise<string> {
     const docRef = await addDoc(collection(db, 'companies', companyId, 'customers'), {
       ...data,
       isActive: true,
@@ -808,13 +920,13 @@ class ApiService {
     return docRef.id;
   }
 
-  // Vendors
-  async getVendors(companyId: string): Promise<any[]> {
+  // Vendors (Firestore direct access - deprecated, use Purchases API methods instead)
+  async getVendorsFirestore(companyId: string): Promise<any[]> {
     const snapshot = await getDocs(collection(db, 'companies', companyId, 'vendors'));
     return snapshot.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
   }
 
-  async createVendor(companyId: string, data: any): Promise<string> {
+  async createVendorFirestore(companyId: string, data: any): Promise<string> {
     const docRef = await addDoc(collection(db, 'companies', companyId, 'vendors'), {
       ...data,
       isActive: true,

@@ -117,9 +117,16 @@ const CompanyPortal: React.FC = () => {
       // Verify token and load company data
       loadCompanyData();
       
-      // Clear setup completion flag if it exists
+      // Clear setup completion flag if it exists and show success message
       if (isFromSetup) {
         localStorage.removeItem(`company_${companyCode}_setup_complete`);
+        // Show success toast after a short delay to ensure data is loaded
+        setTimeout(() => {
+          toast.success('✅ Setup completed! Your company is ready to use.', {
+            duration: 5000,
+            position: 'top-center',
+          });
+        }, 1000);
       }
     }
   }, [companyCode, loadCompanyData]);
