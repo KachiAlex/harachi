@@ -1,11 +1,15 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { User, LogOut, Building2 } from 'lucide-react';
+import BranchSelector from './BranchSelector';
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth();
 
   if (!user) return null;
+
+  // Only show branch selector for users who work with branches (not Super Admin)
+  const showBranchSelector = user.company?.id && !user.roles.some(r => r.name === 'Super Admin');
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -19,6 +23,13 @@ const Header: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-4">
+            {showBranchSelector && (
+              <>
+                <BranchSelector />
+                <div className="h-8 w-px bg-gray-300" />
+              </>
+            )}
+
             <div className="flex items-center space-x-2">
               <User className="h-5 w-5 text-gray-400" />
               <div className="text-sm">

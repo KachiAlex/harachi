@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { RoleProvider } from './contexts/RoleContext';
+import { BranchProvider } from './contexts/BranchContext';
 import Layout from './components/Layout/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -64,9 +65,10 @@ function App() {
   return (
     <AuthProvider>
       <RoleProvider>
-        <Router>
-          <div className="App">
-          <Routes>
+        <BranchProvider>
+          <Router>
+            <div className="App">
+            <Routes>
             {/* Public Routes */}
             <Route 
               path="/login" 
@@ -125,9 +127,10 @@ function App() {
 
             {/* Catch all route */}
             <Route path="*" element={<Navigate to="/dashboard" />} />
-          </Routes>
-          </div>
-        </Router>
+            </Routes>
+            </div>
+          </Router>
+        </BranchProvider>
       </RoleProvider>
     </AuthProvider>
   );
