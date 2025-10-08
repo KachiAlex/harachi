@@ -122,6 +122,33 @@ const Companies: React.FC = () => {
     setShowUpdateModal(true);
   };
 
+  const handleDeleteCompany = async (company: Company) => {
+    // Confirm deletion
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete "${company.name}"?\n\n` +
+      `This will permanently delete:\n` +
+      `- The company and all its data\n` +
+      `- All branches and countries\n` +
+      `- All users associated with this company\n` +
+      `- All inventory and transactions\n\n` +
+      `This action cannot be undone!`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      setLoading(true);
+      await apiService.deleteCompany(company.id);
+      toast.success(`Company "${company.name}" deleted successfully`);
+      await loadCompanies();
+    } catch (error: any) {
+      console.error('Failed to delete company:', error);
+      toast.error(error?.message || 'Failed to delete company');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGenerateLicense = async (companyId: string) => {
     setSelectedCompany({ id: companyId });
     setShowLicenseModal(true);
@@ -246,7 +273,11 @@ const Companies: React.FC = () => {
                   >
                     <Edit className="h-4 w-4" />
                   </button>
-                  <button className="text-gray-400 hover:text-red-600">
+                  <button 
+                    onClick={() => handleDeleteCompany(company)}
+                    className="text-gray-400 hover:text-red-600"
+                    title="Delete Company"
+                  >
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
