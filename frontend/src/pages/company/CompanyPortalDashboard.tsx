@@ -33,11 +33,17 @@ const CompanyPortalDashboard: React.FC = () => {
   });
 
   useEffect(() => {
+    console.log('CompanyPortalDashboard mounted with companyCode:', companyCode);
+    
     const loadCompanyData = async () => {
-      if (!companyCode) return;
+      if (!companyCode) {
+        console.log('No company code provided');
+        return;
+      }
 
       try {
         setLoading(true);
+        console.log('Loading company data for:', companyCode);
         
         // Load company data
         const companyData = await apiService.getCompanyByCode(companyCode);
@@ -100,6 +106,7 @@ const CompanyPortalDashboard: React.FC = () => {
   };
 
   if (loading) {
+    console.log('CompanyPortalDashboard loading...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

@@ -138,7 +138,7 @@ function App() {
               <Route path="branch/reports" element={<Reports />} />
             </Route>
 
-            {/* Catch all route */}
+            {/* Catch all route - only for non-company routes */}
             <Route path="*" element={<Navigate to="/dashboard" />} />
             </Routes>
             </div>
