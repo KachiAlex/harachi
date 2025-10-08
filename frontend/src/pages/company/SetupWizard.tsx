@@ -652,9 +652,9 @@ const SetupWizard: React.FC = () => {
         position: 'top-center',
       });
       
-      // Wait a moment for the toast to be visible before navigating to branch selection
+      // Wait a moment for the toast to be visible before navigating to company portal
       setTimeout(() => {
-        navigate(`/company/${formData.companyCode}/branches`);
+        navigate(`/company/${formData.companyCode}/portal`);
       }, 500);
       
     } catch (err: any) {

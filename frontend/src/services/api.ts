@@ -625,7 +625,7 @@ class ApiService {
 
   // Generate portal link for company
   generatePortalLink(companyCode: string): string {
-    return `${window.location.origin}/company/${companyCode}`;
+    return `${window.location.origin}/company/${companyCode}/access`;
   }
 
   // Predefined license types

@@ -13,6 +13,8 @@ import CompanyPortal from './pages/company/CompanyPortal';
 import LicenseManagement from './pages/company/LicenseManagement';
 import BranchSelection from './pages/company/BranchSelection';
 import CompanyBranchDashboard from './pages/company/CompanyBranchDashboard';
+import CompanyAccess from './pages/company/CompanyAccess';
+import CompanyPortalDashboard from './pages/company/CompanyPortalDashboard';
 import UomsPage from './pages/company/Uoms';
 import BranchesUpload from './pages/company/BranchesUpload';
 import CustomersUpload from './pages/company/CustomersUpload';
@@ -84,11 +86,13 @@ function App() {
             />
 
             {/* Company Portal Routes - More specific routes first */}
+            <Route path="/company/:companyCode/access" element={<CompanyAccess />} />
+            <Route path="/company/:companyCode/portal" element={<CompanyPortalDashboard />} />
             <Route path="/company/:companyCode/setup" element={<SetupWizard />} />
             <Route path="/company/:companyCode/branch/:branchId/dashboard" element={<CompanyBranchDashboard />} />
             <Route path="/company/:companyCode/branches" element={<BranchSelection />} />
             <Route path="/company/:companyCode/license" element={<LicenseManagement />} />
-            <Route path="/company/:companyCode" element={<CompanyPortal />} />
+            <Route path="/company/:companyCode" element={<CompanyAccess />} />
 
             {/* Protected Routes */}
             <Route 
