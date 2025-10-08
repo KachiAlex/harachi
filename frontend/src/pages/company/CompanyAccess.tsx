@@ -40,15 +40,28 @@ const CompanyAccess: React.FC = () => {
       return;
     }
 
+    if (!company?.id) {
+      toast.error('Company not found');
+      return;
+    }
+
     try {
       setLoading(true);
       
+      console.log('Attempting login for:', {
+        companyId: company?.id,
+        username: loginForm.username,
+        companyCode
+      });
+      
       // Authenticate company user
       const authResult = await apiService.authenticateCompanyUser(
+        company?.id,
         loginForm.username,
-        loginForm.password,
-        company?.id
+        loginForm.password
       );
+
+      console.log('Authentication result:', authResult);
 
       if (authResult.success) {
         toast.success('Login successful!');
@@ -56,7 +69,7 @@ const CompanyAccess: React.FC = () => {
         // Navigate to company portal (company-specific interface)
         navigate(`/company/${companyCode}/portal`);
       } else {
-        toast.error('Invalid credentials');
+        toast.error(authResult.message || 'Invalid credentials');
       }
     } catch (error: any) {
       console.error('Login error:', error);
