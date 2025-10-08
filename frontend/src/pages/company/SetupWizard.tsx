@@ -550,21 +550,8 @@ const SetupWizard: React.FC = () => {
         return;
       }
 
-      // Role-based access checks
-      if (currentStep === 1 && !canManageCountries) {
-        toast.error('You do not have permission to manage countries');
-        return;
-      }
-
-      if (currentStep === 2 && !canManageBranches) {
-        toast.error('You do not have permission to manage branches');
-        return;
-      }
-
-      if (currentStep === 3 && !canManageUsers) {
-        toast.error('You do not have permission to manage users');
-        return;
-      }
+      // Skip role-based access checks during setup wizard
+      // These checks are not needed during initial company setup
 
     // Validation for current step
     if (currentStep === 1 && formData.countries.length === 0) {
@@ -1385,10 +1372,7 @@ const SetupWizard: React.FC = () => {
           </button>
           
           <button
-            onClick={() => {
-              markStepComplete(currentStep);
-              handleNext();
-            }}
+            onClick={handleNext}
             disabled={loading}
             className="flex items-center space-x-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
