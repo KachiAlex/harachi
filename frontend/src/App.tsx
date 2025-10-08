@@ -12,6 +12,7 @@ import LicensePage from './pages/company/LicensePage';
 import CompanyPortal from './pages/company/CompanyPortal';
 import LicenseManagement from './pages/company/LicenseManagement';
 import BranchSelection from './pages/company/BranchSelection';
+import CompanyBranchDashboard from './pages/company/CompanyBranchDashboard';
 import UomsPage from './pages/company/Uoms';
 import BranchesUpload from './pages/company/BranchesUpload';
 import CustomersUpload from './pages/company/CustomersUpload';
@@ -84,6 +85,7 @@ function App() {
 
             {/* Company Portal Routes - More specific routes first */}
             <Route path="/company/:companyCode/setup" element={<SetupWizard />} />
+            <Route path="/company/:companyCode/branch/:branchId/dashboard" element={<CompanyBranchDashboard />} />
             <Route path="/company/:companyCode/branches" element={<BranchSelection />} />
             <Route path="/company/:companyCode/license" element={<LicenseManagement />} />
             <Route path="/company/:companyCode" element={<CompanyPortal />} />

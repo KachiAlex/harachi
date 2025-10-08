@@ -66,8 +66,8 @@ const BranchSelection: React.FC = () => {
     // Store selected branch in context
     selectBranch(branch);
     
-    // Navigate to branch dashboard
-    navigate('/branch/dashboard');
+    // Navigate to company-specific branch dashboard
+    navigate(`/company/${companyCode}/branch/${branch.id}/dashboard`);
   };
 
   const getCountryName = (countryId: string) => {
