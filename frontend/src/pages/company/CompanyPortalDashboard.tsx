@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Building2, 
   MapPin, 
@@ -22,6 +22,7 @@ import { apiService } from '../../services/api';
 const CompanyPortalDashboard: React.FC = () => {
   const { companyCode } = useParams<{ companyCode: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -32,11 +33,73 @@ const CompanyPortalDashboard: React.FC = () => {
     totalSales: 0,
     setupComplete: false
   });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Block any unintended navigation
+  // CRITICAL: Check authentication BEFORE any render or navigation
+  useLayoutEffect(() => {
+    const expectedPath = `/company/${companyCode}/portal`;
+    console.log('');
+    console.log('🔒 useLayoutEffect - BLOCKING navigation check');
+    console.log('  Expected path:', expectedPath);
+    console.log('  Current location:', location.pathname);
+    console.log('  Window location:', window.location.pathname);
+    
+    // Check authentication
+    const storedUser = localStorage.getItem('companyPortalUser');
+    const storedCode = localStorage.getItem('companyPortalCode');
+    
+    if (!storedUser || storedCode !== companyCode) {
+      console.log('❌ NOT AUTHENTICATED - Redirecting to login');
+      navigate(`/company/${companyCode}/access`, { replace: true });
+      return;
+    }
+    
+    console.log('✅ AUTHENTICATED - Setting flag');
+    setIsAuthenticated(true);
+    
+    // FORCE stay on this page
+    if (location.pathname !== expectedPath) {
+      console.log('⚠️ WRONG PATH DETECTED!');
+      console.log('  Expected:', expectedPath);
+      console.log('  Got:', location.pathname);
+      console.log('  🚨 FORCING navigation back to portal...');
+      navigate(expectedPath, { replace: true });
+    }
+  }, [companyCode, location.pathname, navigate]);
+
+  // Track ALL location changes
+  useEffect(() => {
+    console.log('📍 Location changed:', location.pathname);
+    console.log('  Expected:', `/company/${companyCode}/portal`);
+    console.log('  Match:', location.pathname === `/company/${companyCode}/portal`);
+    
+    // If we're authenticated but location changed away from portal, FORCE back
+    if (isAuthenticated && location.pathname !== `/company/${companyCode}/portal`) {
+      console.log('🚨 UNAUTHORIZED NAVIGATION DETECTED!');
+      console.log('  Blocking and forcing back to portal...');
+      navigate(`/company/${companyCode}/portal`, { replace: true });
+    }
+  }, [location, companyCode, isAuthenticated, navigate]);
+
+  // Monitor for any navigation attempts
   useEffect(() => {
     console.log('');
     console.log('🛡️ Setting up navigation guard...');
+    
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    
+    window.history.pushState = function(...args) {
+      console.log('🚨 history.pushState called!', args);
+      console.log('  Stack trace:', new Error().stack);
+      return originalPushState.apply(window.history, args);
+    };
+    
+    window.history.replaceState = function(...args) {
+      console.log('🚨 history.replaceState called!', args);
+      console.log('  Stack trace:', new Error().stack);
+      return originalReplaceState.apply(window.history, args);
+    };
     
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       console.log('⚠️ Page attempting to unload/reload');
@@ -51,58 +114,44 @@ const CompanyPortalDashboard: React.FC = () => {
     window.addEventListener('popstate', handlePopState);
     
     return () => {
+      window.history.pushState = originalPushState;
+      window.history.replaceState = originalReplaceState;
       window.removeEventListener('beforeunload', handleBeforeUnload);
       window.removeEventListener('popstate', handlePopState);
     };
   }, []);
 
+  // Load company data - only runs when authenticated
   useEffect(() => {
-    console.log('');
-    console.log('═══════════════════════════════════════════');
-    console.log('🏢 CompanyPortalDashboard MOUNTED');
-    console.log('═══════════════════════════════════════════');
-    console.log('URL companyCode:', companyCode);
-    console.log('Current pathname:', window.location.pathname);
-    console.log('Current URL:', window.location.href);
-    
-    // Check for authenticated company portal user
-    const storedUser = localStorage.getItem('companyPortalUser');
-    const storedCode = localStorage.getItem('companyPortalCode');
-    
-    console.log('');
-    console.log('🔐 Authentication Check:');
-    console.log('  Has storedUser:', !!storedUser);
-    console.log('  Stored code:', storedCode);
-    console.log('  Current code:', companyCode);
-    console.log('  Codes match:', storedCode === companyCode);
-    
-    if (!storedUser || storedCode !== companyCode) {
-      console.log('');
-      console.log('❌ Authentication check FAILED');
-      console.log('  Reason:', !storedUser ? 'No stored user' : 'Company code mismatch');
-      console.log('  Redirecting to:', `/company/${companyCode}/access`);
-      navigate(`/company/${companyCode}/access`, { replace: true });
+    // Don't load data until authenticated
+    if (!isAuthenticated) {
+      console.log('⏸️ Waiting for authentication before loading data...');
       return;
     }
     
-    console.log('✅ Authentication check PASSED');
-    console.log('🎯 STAYING on company portal - NO REDIRECT');
+    console.log('');
+    console.log('═══════════════════════════════════════════');
+    console.log('🏢 CompanyPortalDashboard DATA LOADING');
+    console.log('═══════════════════════════════════════════');
+    console.log('URL companyCode:', companyCode);
+    console.log('Current pathname:', window.location.pathname);
+    console.log('Authenticated:', isAuthenticated);
     
-    try {
-      const user = JSON.parse(storedUser);
-      setCurrentUser(user);
-      console.log('');
-      console.log('👤 Authenticated User:');
-      console.log('  ID:', user.id);
-      console.log('  Username:', user.username);
-      console.log('  Company ID:', user.companyId);
-      console.log('  Roles:', user.roles);
-    } catch (error) {
-      console.error('');
-      console.error('💥 Failed to parse stored user:', error);
-      console.error('  Redirecting to login...');
-      navigate(`/company/${companyCode}/access`, { replace: true });
-      return;
+    // Get user from storage
+    const storedUser = localStorage.getItem('companyPortalUser');
+    if (storedUser) {
+      try {
+        const user = JSON.parse(storedUser);
+        setCurrentUser(user);
+        console.log('');
+        console.log('👤 Authenticated User:');
+        console.log('  ID:', user.id);
+        console.log('  Username:', user.username);
+        console.log('  Company ID:', user.companyId);
+        console.log('  Roles:', user.roles);
+      } catch (error) {
+        console.error('💥 Failed to parse stored user:', error);
+      }
     }
     
     const loadCompanyData = async () => {
@@ -170,7 +219,7 @@ const CompanyPortalDashboard: React.FC = () => {
     };
 
     loadCompanyData();
-  }, [companyCode]);
+  }, [companyCode, isAuthenticated]);
 
   const handleStartSetup = () => {
     navigate(`/company/${companyCode}/setup`);
@@ -196,31 +245,50 @@ const CompanyPortalDashboard: React.FC = () => {
     navigate(`/company/${companyCode}/access`, { replace: true });
   };
 
-  if (loading) {
-    console.log('CompanyPortalDashboard loading...');
+  // Don't render anything until authenticated
+  if (!isAuthenticated) {
+    console.log('⏸️ Not authenticated yet, showing loading...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Verifying authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading) {
+    console.log('📊 Loading company data...');
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading {company?.name || 'company'} portal...</p>
+        </div>
       </div>
     );
   }
 
   if (!company) {
+    console.log('❌ No company data loaded');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Company Not Found</h2>
-          <p className="text-gray-600 mb-8">The company you're looking for doesn't exist.</p>
+          <p className="text-gray-600 mb-8">Unable to load company data.</p>
           <button 
-            onClick={() => navigate('/')}
+            onClick={handleLogout}
             className="btn-primary"
           >
-            Go Back
+            Back to Login
           </button>
         </div>
       </div>
     );
   }
+  
+  console.log('✅ Rendering company portal dashboard for:', company.name);
 
   return (
     <div className="min-h-screen bg-gray-50">
