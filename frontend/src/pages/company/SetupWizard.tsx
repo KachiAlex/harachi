@@ -571,10 +571,10 @@ const SetupWizard: React.FC = () => {
 
       markStepComplete(currentStep);
     
-      if (currentStep < steps.length - 1) {
-        setCurrentStep(currentStep + 1);
-      } else {
-        // Complete setup
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      // Complete setup
         await handleCompleteSetup();
       }
     } catch (err: any) {

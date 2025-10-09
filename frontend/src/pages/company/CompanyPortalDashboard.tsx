@@ -35,37 +35,46 @@ const CompanyPortalDashboard: React.FC = () => {
   });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // CRITICAL: Check authentication BEFORE any render or navigation
+  // CRITICAL: Check authentication BEFORE any render - use direct window.location to avoid React Router race conditions
   useLayoutEffect(() => {
     const expectedPath = `/company/${companyCode}/portal`;
     console.log('');
     console.log('🔒 useLayoutEffect - BLOCKING navigation check');
     console.log('  Expected path:', expectedPath);
-    console.log('  Current location:', location.pathname);
     console.log('  Window location:', window.location.pathname);
     
     // Check authentication
     const storedUser = localStorage.getItem('companyPortalUser');
     const storedCode = localStorage.getItem('companyPortalCode');
     
+    console.log('  Has storedUser:', !!storedUser);
+    console.log('  Stored code:', storedCode);
+    console.log('  URL code:', companyCode);
+    
     if (!storedUser || storedCode !== companyCode) {
-      console.log('❌ NOT AUTHENTICATED - Redirecting to login');
-      navigate(`/company/${companyCode}/access`, { replace: true });
+      console.log('❌ NOT AUTHENTICATED - Using window.location.href to redirect');
+      window.location.href = `/company/${companyCode}/access`;
       return;
     }
     
     console.log('✅ AUTHENTICATED - Setting flag');
     setIsAuthenticated(true);
     
-    // FORCE stay on this page
-    if (location.pathname !== expectedPath) {
-      console.log('⚠️ WRONG PATH DETECTED!');
-      console.log('  Expected:', expectedPath);
-      console.log('  Got:', location.pathname);
-      console.log('  🚨 FORCING navigation back to portal...');
-      navigate(expectedPath, { replace: true });
-    }
-  }, [companyCode, location.pathname, navigate]);
+    // Prevent ANY navigation away from this page
+    const preventNavigation = (e: BeforeUnloadEvent) => {
+      // Only during initial load phase
+      if (!isAuthenticated) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    
+    window.addEventListener('beforeunload', preventNavigation);
+    
+    return () => {
+      window.removeEventListener('beforeunload', preventNavigation);
+    };
+  }, [companyCode, isAuthenticated]);
 
   // Track ALL location changes
   useEffect(() => {

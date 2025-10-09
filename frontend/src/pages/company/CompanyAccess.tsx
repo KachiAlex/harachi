@@ -103,12 +103,14 @@ const CompanyAccess: React.FC = () => {
         const portalPath = `/company/${companyCode}/portal`;
         console.log('🚀 Navigating to company portal:', portalPath);
         console.log('Current location:', window.location.pathname);
+        console.log('Using window.location.href for DIRECT navigation (bypassing React Router)');
         
-        // Use setTimeout to ensure navigation happens after state updates
+        // Use window.location.href for direct navigation, bypassing React Router completely
+        // This prevents any interference from route guards or other navigation listeners
         setTimeout(() => {
-          console.log('Executing navigation...');
-          navigate(portalPath, { replace: true });
-          console.log('Navigation called. New location should be:', portalPath);
+          console.log('Executing direct window navigation...');
+          window.location.href = portalPath;
+          console.log('Navigation executed. Browser should now load:', portalPath);
         }, 100);
         
       } else {
