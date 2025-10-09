@@ -69,83 +69,88 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <RoleProvider>
-        <BranchProvider>
-          <Router>
-            <div className="App">
-            <Routes>
-            {/* Public Routes */}
-            <Route 
-              path="/login" 
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              } 
-            />
+    <Router>
+      <div className="App">
+        <Routes>
+          {/* Company Portal Routes - Completely independent from Harachi auth */}
+          <Route path="/company/:companyCode/access" element={<CompanyAccess />} />
+          <Route path="/company/:companyCode/portal" element={<CompanyPortalDashboard />} />
+          <Route path="/company/:companyCode/setup" element={<SetupWizard />} />
+          <Route path="/company/:companyCode/branch/:branchId/dashboard" element={<CompanyBranchDashboard />} />
+          <Route path="/company/:companyCode/branches" element={<BranchSelection />} />
+          <Route path="/company/:companyCode/license" element={<LicenseManagement />} />
+          <Route path="/company/:companyCode" element={<CompanyAccess />} />
 
-            {/* Company Portal Routes - More specific routes first */}
-            <Route path="/company/:companyCode/access" element={<CompanyAccess />} />
-            <Route path="/company/:companyCode/portal" element={<CompanyPortalDashboard />} />
-            <Route path="/company/:companyCode/setup" element={<SetupWizard />} />
-            <Route path="/company/:companyCode/branch/:branchId/dashboard" element={<CompanyBranchDashboard />} />
-            <Route path="/company/:companyCode/branches" element={<BranchSelection />} />
-            <Route path="/company/:companyCode/license" element={<LicenseManagement />} />
-            <Route path="/company/:companyCode" element={<CompanyAccess />} />
+          {/* Harachi Platform Routes - Wrapped with AuthProvider */}
+          <Route path="/*" element={
+            <AuthProvider>
+              <RoleProvider>
+                <BranchProvider>
+                  <Routes>
+                    {/* Public Routes */}
+                    <Route 
+                      path="/login" 
+                      element={
+                        <PublicRoute>
+                          <Login />
+                        </PublicRoute>
+                      } 
+                    />
 
-            {/* Protected Routes */}
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="/dashboard" />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="profile" element={<UserProfile />} />
-              
-              {/* Super Admin Routes */}
-              <Route path="admin/companies" element={<Companies />} />
-              <Route path="admin/companies/:id" element={<CompanyDetails />} />
-              <Route path="admin/users" element={<Users />} />
-              
-              {/* Company Admin Routes */}
-              <Route path="company/setup" element={<SetupWizard />} />
-              <Route path="company/license" element={<LicensePage />} />
-              <Route path="company/uoms" element={<UomsPage />} />
-              <Route path="company/branches/upload" element={<BranchesUpload />} />
-              <Route path="company/customers/upload" element={<CustomersUpload />} />
-              <Route path="company/vendors/upload" element={<VendorsUpload />} />
+                    {/* Protected Routes */}
+                    <Route 
+                      path="/" 
+                      element={
+                        <ProtectedRoute>
+                          <Layout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route index element={<Navigate to="/dashboard" />} />
+                      <Route path="dashboard" element={<Dashboard />} />
+                      <Route path="profile" element={<UserProfile />} />
+                      
+                      {/* Super Admin Routes */}
+                      <Route path="admin/companies" element={<Companies />} />
+                      <Route path="admin/companies/:id" element={<CompanyDetails />} />
+                      <Route path="admin/users" element={<Users />} />
+                      
+                      {/* Company Admin Routes */}
+                      <Route path="company/setup" element={<SetupWizard />} />
+                      <Route path="company/license" element={<LicensePage />} />
+                      <Route path="company/uoms" element={<UomsPage />} />
+                      <Route path="company/branches/upload" element={<BranchesUpload />} />
+                      <Route path="company/customers/upload" element={<CustomersUpload />} />
+                      <Route path="company/vendors/upload" element={<VendorsUpload />} />
 
-              {/* Branch Admin Routes */}
-              <Route path="branch" element={<BranchDashboard />} />
-              <Route path="branch/dashboard" element={<NewBranchDashboard />} />
-              <Route path="branch/select" element={<BranchSelection />} />
-              <Route path="branch/inventory" element={<InventoryList />} />
-              <Route path="branch/inventory/new" element={<InventoryForm />} />
-              <Route path="branch/inventory/:id" element={<InventoryForm />} />
-              <Route path="branch/inventory/upload" element={<InventoryUpload />} />
-              <Route path="branch/item-master" element={<ItemMaster />} />
-              <Route path="branch/stock" element={<StockManagement />} />
-              <Route path="branch/batch-tracking" element={<BatchTracking />} />
-              <Route path="branch/uoms" element={<UomManagement />} />
-              <Route path="branch/inventory-reports" element={<InventoryReports />} />
-              <Route path="branch/sales" element={<Sales />} />
-              <Route path="branch/purchases" element={<Purchases />} />
-              <Route path="branch/reports" element={<Reports />} />
-            </Route>
+                      {/* Branch Admin Routes */}
+                      <Route path="branch" element={<BranchDashboard />} />
+                      <Route path="branch/dashboard" element={<NewBranchDashboard />} />
+                      <Route path="branch/select" element={<BranchSelection />} />
+                      <Route path="branch/inventory" element={<InventoryList />} />
+                      <Route path="branch/inventory/new" element={<InventoryForm />} />
+                      <Route path="branch/inventory/:id" element={<InventoryForm />} />
+                      <Route path="branch/inventory/upload" element={<InventoryUpload />} />
+                      <Route path="branch/item-master" element={<ItemMaster />} />
+                      <Route path="branch/stock" element={<StockManagement />} />
+                      <Route path="branch/batch-tracking" element={<BatchTracking />} />
+                      <Route path="branch/uoms" element={<UomManagement />} />
+                      <Route path="branch/inventory-reports" element={<InventoryReports />} />
+                      <Route path="branch/sales" element={<Sales />} />
+                      <Route path="branch/purchases" element={<Purchases />} />
+                      <Route path="branch/reports" element={<Reports />} />
+                    </Route>
 
-            {/* Catch all route - only for non-company routes */}
-            <Route path="*" element={<Navigate to="/dashboard" />} />
-            </Routes>
-            </div>
-          </Router>
-        </BranchProvider>
-      </RoleProvider>
-    </AuthProvider>
+                    {/* Catch all route - only for Harachi platform routes */}
+                    <Route path="*" element={<Navigate to="/dashboard" />} />
+                  </Routes>
+                </BranchProvider>
+              </RoleProvider>
+            </AuthProvider>
+          } />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
