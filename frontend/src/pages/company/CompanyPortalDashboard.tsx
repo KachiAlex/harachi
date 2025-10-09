@@ -33,6 +33,29 @@ const CompanyPortalDashboard: React.FC = () => {
     setupComplete: false
   });
 
+  // Block any unintended navigation
+  useEffect(() => {
+    console.log('');
+    console.log('🛡️ Setting up navigation guard...');
+    
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      console.log('⚠️ Page attempting to unload/reload');
+    };
+    
+    const handlePopState = (e: PopStateEvent) => {
+      console.log('⚠️ Browser back/forward button pressed');
+      console.log('  Current URL:', window.location.pathname);
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
   useEffect(() => {
     console.log('');
     console.log('═══════════════════════════════════════════');
@@ -40,6 +63,7 @@ const CompanyPortalDashboard: React.FC = () => {
     console.log('═══════════════════════════════════════════');
     console.log('URL companyCode:', companyCode);
     console.log('Current pathname:', window.location.pathname);
+    console.log('Current URL:', window.location.href);
     
     // Check for authenticated company portal user
     const storedUser = localStorage.getItem('companyPortalUser');
@@ -62,6 +86,7 @@ const CompanyPortalDashboard: React.FC = () => {
     }
     
     console.log('✅ Authentication check PASSED');
+    console.log('🎯 STAYING on company portal - NO REDIRECT');
     
     try {
       const user = JSON.parse(storedUser);
