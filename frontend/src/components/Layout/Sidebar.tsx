@@ -28,6 +28,7 @@ const Sidebar: React.FC = () => {
 
   // Role checks for navigation filtering
   const userRoles = user.roles.map(role => role.name);
+  const isSuperAdmin = userRoles.includes('Super Admin');
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['*'] },
@@ -73,8 +74,8 @@ const Sidebar: React.FC = () => {
 
   return (
     <div className="w-64 bg-gray-50 border-r border-gray-200 min-h-screen">
-      {/* Selected Branch Indicator */}
-      {selectedBranch && (
+      {/* Selected Branch Indicator - Only show for non-Super Admin users */}
+      {selectedBranch && !isSuperAdmin && (
         <div className="mt-4 mx-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <div className="flex items-center space-x-2">
             <MapPin className="h-4 w-4 text-blue-600" />
