@@ -24,6 +24,7 @@ const CompanyPortalDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [company, setCompany] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [stats, setStats] = useState({
     totalBranches: 0,
     totalUsers: 0,
@@ -34,6 +35,28 @@ const CompanyPortalDashboard: React.FC = () => {
 
   useEffect(() => {
     console.log('CompanyPortalDashboard mounted with companyCode:', companyCode);
+    
+    // Check for authenticated company portal user
+    const storedUser = localStorage.getItem('companyPortalUser');
+    const storedCode = localStorage.getItem('companyPortalCode');
+    
+    console.log('Checking authentication:', { storedUser: !!storedUser, storedCode, currentCode: companyCode });
+    
+    if (!storedUser || storedCode !== companyCode) {
+      console.log('No authenticated user found, redirecting to login');
+      navigate(`/company/${companyCode}/access`, { replace: true });
+      return;
+    }
+    
+    try {
+      const user = JSON.parse(storedUser);
+      setCurrentUser(user);
+      console.log('Authenticated user:', user);
+    } catch (error) {
+      console.error('Failed to parse stored user:', error);
+      navigate(`/company/${companyCode}/access`, { replace: true });
+      return;
+    }
     
     const loadCompanyData = async () => {
       if (!companyCode) {
@@ -105,6 +128,14 @@ const CompanyPortalDashboard: React.FC = () => {
     navigate(`/company/${companyCode}/settings`);
   };
 
+  const handleLogout = () => {
+    console.log('Logging out from company portal');
+    localStorage.removeItem('companyPortalUser');
+    localStorage.removeItem('companyPortalCode');
+    toast.success('Logged out successfully');
+    navigate(`/company/${companyCode}/access`, { replace: true });
+  };
+
   if (loading) {
     console.log('CompanyPortalDashboard loading...');
     return (
@@ -147,13 +178,21 @@ const CompanyPortalDashboard: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">Welcome, Admin</span>
+              <span className="text-sm text-gray-700">
+                Welcome, {currentUser?.firstName || currentUser?.username || 'Admin'}
+              </span>
               <button
-                onClick={() => navigate(`/company/${companyCode}/settings`)}
+                onClick={handleCompanySettings}
                 className="flex items-center space-x-1 text-gray-600 hover:text-gray-900"
               >
                 <Settings className="h-4 w-4" />
                 <span>Settings</span>
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors"
+              >
+                Logout
               </button>
             </div>
           </div>

@@ -61,13 +61,26 @@ const CompanyAccess: React.FC = () => {
         loginForm.password
       );
 
-      console.log('Authentication result:', authResult);
+      console.log('Authentication result:', {
+        success: authResult.success,
+        hasUser: !!authResult.user,
+        message: authResult.message,
+        user: authResult.user
+      });
 
       if (authResult.success) {
+        // Store user data in local storage for company portal session
+        if (authResult.user) {
+          localStorage.setItem('companyPortalUser', JSON.stringify(authResult.user));
+          localStorage.setItem('companyPortalCode', companyCode || '');
+          console.log('Stored company portal user:', authResult.user);
+        }
+        
         toast.success('Login successful!');
         
         // Navigate to company portal (company-specific interface)
-        navigate(`/company/${companyCode}/portal`);
+        console.log('Navigating to company portal:', `/company/${companyCode}/portal`);
+        navigate(`/company/${companyCode}/portal`, { replace: true });
       } else {
         toast.error(authResult.message || 'Invalid credentials');
       }
