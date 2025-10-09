@@ -34,53 +34,80 @@ const CompanyPortalDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    console.log('CompanyPortalDashboard mounted with companyCode:', companyCode);
+    console.log('');
+    console.log('═══════════════════════════════════════════');
+    console.log('🏢 CompanyPortalDashboard MOUNTED');
+    console.log('═══════════════════════════════════════════');
+    console.log('URL companyCode:', companyCode);
+    console.log('Current pathname:', window.location.pathname);
     
     // Check for authenticated company portal user
     const storedUser = localStorage.getItem('companyPortalUser');
     const storedCode = localStorage.getItem('companyPortalCode');
     
-    console.log('Checking authentication:', { storedUser: !!storedUser, storedCode, currentCode: companyCode });
+    console.log('');
+    console.log('🔐 Authentication Check:');
+    console.log('  Has storedUser:', !!storedUser);
+    console.log('  Stored code:', storedCode);
+    console.log('  Current code:', companyCode);
+    console.log('  Codes match:', storedCode === companyCode);
     
     if (!storedUser || storedCode !== companyCode) {
-      console.log('No authenticated user found, redirecting to login');
+      console.log('');
+      console.log('❌ Authentication check FAILED');
+      console.log('  Reason:', !storedUser ? 'No stored user' : 'Company code mismatch');
+      console.log('  Redirecting to:', `/company/${companyCode}/access`);
       navigate(`/company/${companyCode}/access`, { replace: true });
       return;
     }
     
+    console.log('✅ Authentication check PASSED');
+    
     try {
       const user = JSON.parse(storedUser);
       setCurrentUser(user);
-      console.log('Authenticated user:', user);
+      console.log('');
+      console.log('👤 Authenticated User:');
+      console.log('  ID:', user.id);
+      console.log('  Username:', user.username);
+      console.log('  Company ID:', user.companyId);
+      console.log('  Roles:', user.roles);
     } catch (error) {
-      console.error('Failed to parse stored user:', error);
+      console.error('');
+      console.error('💥 Failed to parse stored user:', error);
+      console.error('  Redirecting to login...');
       navigate(`/company/${companyCode}/access`, { replace: true });
       return;
     }
     
     const loadCompanyData = async () => {
       if (!companyCode) {
-        console.log('No company code provided');
+        console.log('❌ No company code provided');
         return;
       }
 
       try {
         setLoading(true);
-        console.log('Loading company data for:', companyCode);
+        console.log('');
+        console.log('📊 Loading company data...');
+        console.log('  Company code:', companyCode);
         
         // Load company data
         const companyData = await apiService.getCompanyByCode(companyCode);
         if (!companyData) {
           throw new Error('Company not found');
         }
+        console.log('  ✅ Company loaded:', companyData.name);
         setCompany(companyData);
 
         // Load company statistics
+        console.log('  Loading statistics...');
         const [branches, users, countries] = await Promise.all([
           apiService.getBranches(companyData.id),
           apiService.getUsers(companyData.id),
           apiService.getCountries(companyData.id)
         ]);
+        console.log(`  ✅ Loaded: ${branches.length} branches, ${users.length} users, ${countries.length} countries`);
 
         // Calculate total items across all branches
         let totalItems = 0;
@@ -89,7 +116,7 @@ const CompanyPortalDashboard: React.FC = () => {
             const items = await apiService.getItems(branch.id);
             totalItems += items.length;
           } catch (error) {
-            console.warn(`Failed to load items for branch ${branch.id}:`, error);
+            console.warn(`  ⚠️ Failed to load items for branch ${branch.id}:`, error);
           }
         }
 
@@ -100,9 +127,17 @@ const CompanyPortalDashboard: React.FC = () => {
           totalSales: 0, // TODO: Calculate from actual sales data
           setupComplete: companyData.isSetupComplete || false
         });
+        
+        console.log('');
+        console.log('✅ Company portal data loaded successfully!');
+        console.log('═══════════════════════════════════════════');
+        console.log('');
 
       } catch (error: any) {
-        console.error('Failed to load company data:', error);
+        console.error('');
+        console.error('💥 Failed to load company data:', error);
+        console.error('═══════════════════════════════════════════');
+        console.error('');
         toast.error(error?.message || 'Failed to load company data');
       } finally {
         setLoading(false);

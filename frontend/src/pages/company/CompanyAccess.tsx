@@ -35,12 +35,22 @@ const CompanyAccess: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('=== LOGIN ATTEMPT STARTED ===');
+    console.log('Form data:', {
+      username: loginForm.username,
+      password: loginForm.password ? '***' : '(empty)',
+      hasUsername: !!loginForm.username.trim(),
+      hasPassword: !!loginForm.password.trim()
+    });
+    
     if (!loginForm.username.trim() || !loginForm.password.trim()) {
+      console.log('❌ Validation failed: Empty username or password');
       toast.error('Please enter username and password');
       return;
     }
 
     if (!company?.id) {
+      console.log('❌ Validation failed: No company ID');
       toast.error('Company not found');
       return;
     }
@@ -48,10 +58,12 @@ const CompanyAccess: React.FC = () => {
     try {
       setLoading(true);
       
-      console.log('Attempting login for:', {
+      console.log('✅ Validation passed. Calling authenticateCompanyUser...');
+      console.log('Parameters:', {
         companyId: company?.id,
-        username: loginForm.username,
-        companyCode
+        companyName: company?.name,
+        companyCode: companyCode,
+        username: loginForm.username
       });
       
       // Authenticate company user
@@ -61,34 +73,59 @@ const CompanyAccess: React.FC = () => {
         loginForm.password
       );
 
-      console.log('Authentication result:', {
-        success: authResult.success,
-        hasUser: !!authResult.user,
-        message: authResult.message,
-        user: authResult.user
-      });
+      console.log('📥 Authentication result received:');
+      console.log('Success:', authResult.success);
+      console.log('Has user:', !!authResult.user);
+      console.log('Message:', authResult.message);
+      console.log('User data:', authResult.user ? {
+        id: authResult.user.id,
+        username: authResult.user.username,
+        companyId: authResult.user.companyId,
+        roles: authResult.user.roles
+      } : 'No user data');
 
       if (authResult.success) {
+        console.log('✅ Authentication successful!');
+        
         // Store user data in local storage for company portal session
         if (authResult.user) {
           localStorage.setItem('companyPortalUser', JSON.stringify(authResult.user));
           localStorage.setItem('companyPortalCode', companyCode || '');
-          console.log('Stored company portal user:', authResult.user);
+          console.log('✅ User data stored in localStorage');
+          console.log('Stored keys:', {
+            companyPortalUser: !!localStorage.getItem('companyPortalUser'),
+            companyPortalCode: localStorage.getItem('companyPortalCode')
+          });
         }
         
-        toast.success('Login successful!');
+        toast.success(`Welcome, ${authResult.user?.username || 'User'}!`);
         
-        // Navigate to company portal (company-specific interface)
-        console.log('Navigating to company portal:', `/company/${companyCode}/portal`);
-        navigate(`/company/${companyCode}/portal`, { replace: true });
+        const portalPath = `/company/${companyCode}/portal`;
+        console.log('🚀 Navigating to company portal:', portalPath);
+        console.log('Current location:', window.location.pathname);
+        
+        // Use setTimeout to ensure navigation happens after state updates
+        setTimeout(() => {
+          console.log('Executing navigation...');
+          navigate(portalPath, { replace: true });
+          console.log('Navigation called. New location should be:', portalPath);
+        }, 100);
+        
       } else {
-        toast.error(authResult.message || 'Invalid credentials');
+        console.log('❌ Authentication failed:', authResult.message);
+        toast.error(authResult.message || 'Invalid username or password');
       }
     } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error(error?.message || 'Login failed');
+      console.error('💥 Login error:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        code: error?.code
+      });
+      toast.error(error?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
+      console.log('=== LOGIN ATTEMPT ENDED ===');
     }
   };
 
