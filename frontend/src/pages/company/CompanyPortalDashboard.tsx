@@ -19,6 +19,38 @@ import {
 import toast from 'react-hot-toast';
 import { apiService } from '../../services/api';
 
+// Global log storage for inspection
+declare global {
+  interface Window {
+    PORTAL_DEBUG_LOGS: string[];
+    getPortalLogs: () => void;
+  }
+}
+
+// Initialize global log storage
+if (!window.PORTAL_DEBUG_LOGS) {
+  window.PORTAL_DEBUG_LOGS = [];
+}
+
+// Helper to log and store
+const debugLog = (message: string, ...args: any[]) => {
+  const timestamp = new Date().toISOString();
+  const fullMessage = `[${timestamp}] ${message}`;
+  console.log(fullMessage, ...args);
+  window.PORTAL_DEBUG_LOGS.push(fullMessage + (args.length ? ' ' + JSON.stringify(args) : ''));
+};
+
+// Helper function to view logs
+window.getPortalLogs = () => {
+  console.log('='.repeat(80));
+  console.log('PORTAL DEBUG LOGS:');
+  console.log('='.repeat(80));
+  window.PORTAL_DEBUG_LOGS.forEach(log => console.log(log));
+  console.log('='.repeat(80));
+  console.log('Total logs:', window.PORTAL_DEBUG_LOGS.length);
+  console.log('To copy: copy(window.PORTAL_DEBUG_LOGS.join("\\n"))');
+};
+
 const CompanyPortalDashboard: React.FC = () => {
   const { companyCode } = useParams<{ companyCode: string }>();
   const navigate = useNavigate();
@@ -38,26 +70,34 @@ const CompanyPortalDashboard: React.FC = () => {
   // CRITICAL: Check authentication BEFORE any render - use direct window.location to avoid React Router race conditions
   useLayoutEffect(() => {
     const expectedPath = `/company/${companyCode}/portal`;
-    console.log('');
-    console.log('🔒 useLayoutEffect - BLOCKING navigation check');
-    console.log('  Expected path:', expectedPath);
-    console.log('  Window location:', window.location.pathname);
+    debugLog('');
+    debugLog('🔒 useLayoutEffect - BLOCKING navigation check');
+    debugLog('  Expected path:', expectedPath);
+    debugLog('  Window location:', window.location.pathname);
+    debugLog('  Window href:', window.location.href);
     
     // Check authentication
     const storedUser = localStorage.getItem('companyPortalUser');
     const storedCode = localStorage.getItem('companyPortalCode');
     
-    console.log('  Has storedUser:', !!storedUser);
-    console.log('  Stored code:', storedCode);
-    console.log('  URL code:', companyCode);
+    debugLog('  Has storedUser:', !!storedUser);
+    debugLog('  Stored code:', storedCode);
+    debugLog('  URL code:', companyCode);
     
     if (!storedUser || storedCode !== companyCode) {
-      console.log('❌ NOT AUTHENTICATED - Using window.location.href to redirect');
-      window.location.href = `/company/${companyCode}/access`;
+      debugLog('❌ NOT AUTHENTICATED - Using window.location.href to redirect');
+      debugLog('  Target:', `/company/${companyCode}/access`);
+      debugLog('⏳ WAITING 5 SECONDS before redirect so you can see logs...');
+      
+      // Delay redirect so user can see/copy logs
+      setTimeout(() => {
+        debugLog('⏳ Redirect delay complete, executing redirect NOW');
+        window.location.href = `/company/${companyCode}/access`;
+      }, 5000);
       return;
     }
     
-    console.log('✅ AUTHENTICATED - Setting flag');
+    debugLog('✅ AUTHENTICATED - Setting flag');
     setIsAuthenticated(true);
     
     // Prevent ANY navigation away from this page
@@ -78,51 +118,70 @@ const CompanyPortalDashboard: React.FC = () => {
 
   // Track ALL location changes
   useEffect(() => {
-    console.log('📍 Location changed:', location.pathname);
-    console.log('  Expected:', `/company/${companyCode}/portal`);
-    console.log('  Match:', location.pathname === `/company/${companyCode}/portal`);
+    debugLog('📍 Location changed:', location.pathname);
+    debugLog('  Expected:', `/company/${companyCode}/portal`);
+    debugLog('  Match:', location.pathname === `/company/${companyCode}/portal`);
     
-    // If we're authenticated but location changed away from portal, FORCE back
+    // If we're authenticated but location changed away from portal, BLOCK IT
     if (isAuthenticated && location.pathname !== `/company/${companyCode}/portal`) {
-      console.log('🚨 UNAUTHORIZED NAVIGATION DETECTED!');
-      console.log('  Blocking and forcing back to portal...');
-      navigate(`/company/${companyCode}/portal`, { replace: true });
+      debugLog('🚨 UNAUTHORIZED NAVIGATION DETECTED!');
+      debugLog('  Current path:', location.pathname);
+      debugLog('  Expected path:', `/company/${companyCode}/portal`);
+      debugLog('  🛑 BLOCKING with 5 second delay for log inspection...');
+      
+      setTimeout(() => {
+        debugLog('  Forcing back to portal using window.location.href...');
+        window.location.href = `/company/${companyCode}/portal`;
+      }, 5000);
     }
-  }, [location, companyCode, isAuthenticated, navigate]);
+  }, [location, companyCode, isAuthenticated]);
 
-  // Monitor for any navigation attempts
+  // Monitor for any navigation attempts with detailed logging
   useEffect(() => {
-    console.log('');
-    console.log('🛡️ Setting up navigation guard...');
+    debugLog('');
+    debugLog('🛡️ Setting up navigation guard and history API interception...');
     
     const originalPushState = window.history.pushState;
     const originalReplaceState = window.history.replaceState;
     
     window.history.pushState = function(...args) {
-      console.log('🚨 history.pushState called!', args);
-      console.log('  Stack trace:', new Error().stack);
+      debugLog('🚨 history.pushState called!');
+      debugLog('  Args:', JSON.stringify(args[0]));
+      debugLog('  URL:', args[2]);
+      const stack = new Error().stack || '';
+      const stackLines = stack.split('\n').slice(1, 6).join('\n');
+      debugLog('  Stack trace:', stackLines);
       return originalPushState.apply(window.history, args);
     };
     
     window.history.replaceState = function(...args) {
-      console.log('🚨 history.replaceState called!', args);
-      console.log('  Stack trace:', new Error().stack);
+      debugLog('🚨 history.replaceState called!');
+      debugLog('  Args:', JSON.stringify(args[0]));
+      debugLog('  URL:', args[2]);
+      const stack = new Error().stack || '';
+      const stackLines = stack.split('\n').slice(1, 6).join('\n');
+      debugLog('  Stack trace:', stackLines);
       return originalReplaceState.apply(window.history, args);
     };
     
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      console.log('⚠️ Page attempting to unload/reload');
+      debugLog('⚠️ Page attempting to unload/reload');
+      debugLog('  Current URL:', window.location.href);
     };
     
     const handlePopState = (e: PopStateEvent) => {
-      console.log('⚠️ Browser back/forward button pressed');
-      console.log('  Current URL:', window.location.pathname);
+      debugLog('⚠️ Browser back/forward button pressed');
+      debugLog('  Current URL:', window.location.pathname);
+      debugLog('  State:', e.state);
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
     window.addEventListener('popstate', handlePopState);
     
+    debugLog('✅ Navigation guard setup complete');
+    
     return () => {
+      debugLog('🧹 Cleaning up navigation guard...');
       window.history.pushState = originalPushState;
       window.history.replaceState = originalReplaceState;
       window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -134,17 +193,17 @@ const CompanyPortalDashboard: React.FC = () => {
   useEffect(() => {
     // Don't load data until authenticated
     if (!isAuthenticated) {
-      console.log('⏸️ Waiting for authentication before loading data...');
+      debugLog('⏸️ Waiting for authentication before loading data...');
       return;
     }
     
-    console.log('');
-    console.log('═══════════════════════════════════════════');
-    console.log('🏢 CompanyPortalDashboard DATA LOADING');
-    console.log('═══════════════════════════════════════════');
-    console.log('URL companyCode:', companyCode);
-    console.log('Current pathname:', window.location.pathname);
-    console.log('Authenticated:', isAuthenticated);
+    debugLog('');
+    debugLog('═══════════════════════════════════════════');
+    debugLog('🏢 CompanyPortalDashboard DATA LOADING');
+    debugLog('═══════════════════════════════════════════');
+    debugLog('URL companyCode:', companyCode);
+    debugLog('Current pathname:', window.location.pathname);
+    debugLog('Authenticated:', isAuthenticated);
     
     // Get user from storage
     const storedUser = localStorage.getItem('companyPortalUser');
@@ -152,45 +211,45 @@ const CompanyPortalDashboard: React.FC = () => {
       try {
         const user = JSON.parse(storedUser);
         setCurrentUser(user);
-        console.log('');
-        console.log('👤 Authenticated User:');
-        console.log('  ID:', user.id);
-        console.log('  Username:', user.username);
-        console.log('  Company ID:', user.companyId);
-        console.log('  Roles:', user.roles);
+        debugLog('');
+        debugLog('👤 Authenticated User:');
+        debugLog('  ID:', user.id);
+        debugLog('  Username:', user.username);
+        debugLog('  Company ID:', user.companyId);
+        debugLog('  Roles:', user.roles);
       } catch (error) {
-        console.error('💥 Failed to parse stored user:', error);
+        debugLog('💥 Failed to parse stored user:', error);
       }
     }
     
     const loadCompanyData = async () => {
       if (!companyCode) {
-        console.log('❌ No company code provided');
+        debugLog('❌ No company code provided');
         return;
       }
 
       try {
         setLoading(true);
-        console.log('');
-        console.log('📊 Loading company data...');
-        console.log('  Company code:', companyCode);
+        debugLog('');
+        debugLog('📊 Loading company data...');
+        debugLog('  Company code:', companyCode);
         
         // Load company data
         const companyData = await apiService.getCompanyByCode(companyCode);
         if (!companyData) {
           throw new Error('Company not found');
         }
-        console.log('  ✅ Company loaded:', companyData.name);
+        debugLog('  ✅ Company loaded:', companyData.name);
         setCompany(companyData);
 
         // Load company statistics
-        console.log('  Loading statistics...');
+        debugLog('  Loading statistics...');
         const [branches, users, countries] = await Promise.all([
           apiService.getBranches(companyData.id),
           apiService.getUsers(companyData.id),
           apiService.getCountries(companyData.id)
         ]);
-        console.log(`  ✅ Loaded: ${branches.length} branches, ${users.length} users, ${countries.length} countries`);
+        debugLog(`  ✅ Loaded: ${branches.length} branches, ${users.length} users, ${countries.length} countries`);
 
         // Calculate total items across all branches
         let totalItems = 0;
@@ -211,10 +270,10 @@ const CompanyPortalDashboard: React.FC = () => {
           setupComplete: companyData.isSetupComplete || false
         });
         
-        console.log('');
-        console.log('✅ Company portal data loaded successfully!');
-        console.log('═══════════════════════════════════════════');
-        console.log('');
+        debugLog('');
+        debugLog('✅ Company portal data loaded successfully!');
+        debugLog('═══════════════════════════════════════════');
+        debugLog('');
 
       } catch (error: any) {
         console.error('');
@@ -247,7 +306,7 @@ const CompanyPortalDashboard: React.FC = () => {
   };
 
   const handleLogout = () => {
-    console.log('Logging out from company portal');
+    debugLog('Logging out from company portal');
     localStorage.removeItem('companyPortalUser');
     localStorage.removeItem('companyPortalCode');
     toast.success('Logged out successfully');
@@ -256,7 +315,7 @@ const CompanyPortalDashboard: React.FC = () => {
 
   // Don't render anything until authenticated
   if (!isAuthenticated) {
-    console.log('⏸️ Not authenticated yet, showing loading...');
+    debugLog('⏸️ Not authenticated yet, showing loading...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -268,7 +327,7 @@ const CompanyPortalDashboard: React.FC = () => {
   }
 
   if (loading) {
-    console.log('📊 Loading company data...');
+    debugLog('📊 Loading company data...');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -280,7 +339,7 @@ const CompanyPortalDashboard: React.FC = () => {
   }
 
   if (!company) {
-    console.log('❌ No company data loaded');
+    debugLog('❌ No company data loaded');
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -297,7 +356,7 @@ const CompanyPortalDashboard: React.FC = () => {
     );
   }
   
-  console.log('✅ Rendering company portal dashboard for:', company.name);
+  debugLog('✅ Rendering company portal dashboard for:', company.name);
 
   return (
     <div className="min-h-screen bg-gray-50">
